@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '../services/api';
+import Modal from './Modal';
 import { Users, UserPlus, TrendingUp, ShoppingBag, Search, Eye, Edit, Trash2, MoreHorizontal, Shield, AlertCircle, CheckCircle } from 'lucide-react';
 
 interface DashboardProps {
@@ -24,6 +25,14 @@ function Dashboard({ rol, title, canEdit = false, canDelete = false, canCreate =
   const [busqueda, setBusqueda] = useState('');
   const [filteredVendedoras, setFilteredVendedoras] = useState<Vendedora[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [formData, setFormData] = useState({
+    nombre: '',
+    cedula: '',
+    reputacion: 'OBSERVADA',
+    telefono: '',
+    direccion: '',
+  });
   const [stats, setStats] = useState({
     totalVendedoras: 0,
     totalGerentes: 0,
@@ -75,6 +84,28 @@ function Dashboard({ rol, title, canEdit = false, canDelete = false, canCreate =
       setFilteredVendedoras(filtered);
     }
   }, [busqueda, vendedoras]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await api.post('/vendedora', {
+        nombre: formData.nombre,
+        cedula: formData.cedula,
+        reputacion: formData.reputacion,
+        telefono: formData.telefono,
+        direccion: formData.direccion,
+        gerenteZonaId: null,
+      });
+      setShowModal(false);
+      setFormData({ nombre: '', cedula: '', reputacion: 'OBSERVADA', telefono: '', direccion: '' });
+      const response = await api.get('/vendedora');
+      setVendedoras(response.data);
+      setFilteredVendedoras(response.data);
+      alert('✅ Vendedora registrada exitosamente');
+    } catch (error: any) {
+      alert('❌ Error al registrar vendedora');
+    }
+  };
 
   const getColorReputacion = (reputacion: string) => {
     switch (reputacion) {
@@ -183,7 +214,10 @@ function Dashboard({ rol, title, canEdit = false, canDelete = false, canCreate =
             </div>
           </div>
           {canCreate && (
-            <button className="px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-medium shadow-md hover:shadow-xl transition-all duration-300 hover:scale-105 flex items-center gap-2 whitespace-nowrap">
+            <button
+              onClick={() => setShowModal(true)}
+              className="px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-medium shadow-md hover:shadow-xl transition-all duration-300 hover:scale-105 flex items-center gap-2 whitespace-nowrap"
+            >
               <UserPlus className="w-4 h-4" />
               Registrar Vendedora
             </button>
@@ -282,6 +316,78 @@ function Dashboard({ rol, title, canEdit = false, canDelete = false, canCreate =
           </table>
         </div>
       </div>
+
+      {/* Modal para registrar vendedora */}
+      <Modal isOpen={showModal} onClose={() => setShowModal(false)} title="Registrar Vendedora" size="md">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Nombre completo *</label>
+            <input
+              type="text"
+              value={formData.nombre}
+              onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Cédula *</label>
+            <input
+              type="text"
+              value={formData.cedula}
+              onChange={(e) => setFormData({ ...formData, cedula: e.target.value })}
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Teléfono</label>
+            <input
+              type="tel"
+              value={formData.telefono}
+              onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Dirección</label>
+            <textarea
+              value={formData.direccion}
+              onChange={(e) => setFormData({ ...formData, direccion: e.target.value })}
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg"
+              rows={2}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Reputación</label>
+            <select
+              value={formData.reputacion}
+              onChange={(e) => setFormData({ ...formData, reputacion: e.target.value })}
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg"
+            >
+              <option value="POSITIVA">✅ Positiva</option>
+              <option value="OBSERVADA">⚠️ Observada</option>
+              <option value="RESTRINGIDA">🔴 Restringida</option>
+              <option value="NUEVA">🔵 Nueva</option>
+            </select>
+          </div>
+          <div className="flex justify-end gap-3 pt-4">
+            <button
+              type="button"
+              onClick={() => setShowModal(false)}
+              className="px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 transition"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:shadow-lg transition"
+            >
+              Registrar
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }
