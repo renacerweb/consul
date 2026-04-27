@@ -20,18 +20,28 @@ interface Vendedora {
   createdAt: string;
 }
 
+interface Gerente {
+  id: number;
+  nombre: string;
+  email: string;
+  region: string;
+}
+
 function Dashboard({ rol, title, canEdit = false, canDelete = false, canCreate = false }: DashboardProps) {
   const [vendedoras, setVendedoras] = useState<Vendedora[]>([]);
   const [busqueda, setBusqueda] = useState('');
   const [filteredVendedoras, setFilteredVendedoras] = useState<Vendedora[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [gerentes, setGerentes] = useState<Gerente[]>([]);
+  const [usuario, setUsuario] = useState<any>(null);
   const [formData, setFormData] = useState({
     nombre: '',
     cedula: '',
     reputacion: 'OBSERVADA',
     telefono: '',
     direccion: '',
+    gerenteZonaId: '',
   });
   const [stats, setStats] = useState({
     totalVendedoras: 0,
@@ -39,6 +49,25 @@ function Dashboard({ rol, title, canEdit = false, canDelete = false, canCreate =
     consultasMes: 0,
     reportesRecientes: 0,
   });
+
+  // Cargar usuario del localStorage
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem('usuario') || '{}');
+    setUsuario(user);
+  }, []);
+
+  // Cargar lista de gerentes (para el selector del ADMIN)
+  useEffect(() => {
+    const fetchGerentes = async () => {
+      try {
+        const response = await api.get('/auth/usuarios?rol=GERENTE_ZONA');
+        setGerentes(response.data);
+      } catch (error) {
+        console.error('Error al cargar gerentes:', error);
+      }
+    };
+    fetchGerentes();
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -48,13 +77,13 @@ function Dashboard({ rol, title, canEdit = false, canDelete = false, canCreate =
           api.get('/auth/usuarios'),
         ]);
         
-        const gerentes = usuariosRes.data.filter((u: any) => u.rol === 'GERENTE_ZONA');
+        const gerentesList = usuariosRes.data.filter((u: any) => u.rol === 'GERENTE_ZONA');
         
         setVendedoras(vendedorasRes.data);
         setFilteredVendedoras(vendedorasRes.data);
         setStats({
           totalVendedoras: vendedorasRes.data.length,
-          totalGerentes: gerentes.length,
+          totalGerentes: gerentesList.length,
           consultasMes: 1250,
           reportesRecientes: vendedorasRes.data.filter((v: any) => {
             const fecha = new Date(v.createdAt);
@@ -88,22 +117,44 @@ function Dashboard({ rol, title, canEdit = false, canDelete = false, canCreate =
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const user = JSON.parse(localStorage.getItem('usuario') || '{}');
+      
+      // Determinar gerenteZonaId según el rol
+      let gerenteZonaId = null;
+      
+      if (user.rol === 'GERENTE_ZONA') {
+        // Gerente: usa su propia zona automáticamente
+        gerenteZonaId = user.gerenteZonaId;
+      } else if (user.rol === 'ADMIN' && formData.gerenteZonaId) {
+        // Admin: usa el gerente seleccionado
+        gerenteZonaId = parseInt(formData.gerenteZonaId);
+      }
+
       await api.post('/vendedora', {
         nombre: formData.nombre,
         cedula: formData.cedula,
         reputacion: formData.reputacion,
         telefono: formData.telefono,
         direccion: formData.direccion,
-        gerenteZonaId: null,
+        gerenteZonaId: gerenteZonaId,
       });
+      
       setShowModal(false);
-      setFormData({ nombre: '', cedula: '', reputacion: 'OBSERVADA', telefono: '', direccion: '' });
+      setFormData({ 
+        nombre: '', 
+        cedula: '', 
+        reputacion: 'OBSERVADA', 
+        telefono: '', 
+        direccion: '',
+        gerenteZonaId: '',
+      });
+      
       const response = await api.get('/vendedora');
       setVendedoras(response.data);
       setFilteredVendedoras(response.data);
       alert('✅ Vendedora registrada exitosamente');
     } catch (error: any) {
-      alert('❌ Error al registrar vendedora');
+      alert('❌ Error al registrar vendedora: ' + (error.response?.data?.error || 'Error desconocido'));
     }
   };
 
@@ -371,6 +422,31 @@ function Dashboard({ rol, title, canEdit = false, canDelete = false, canCreate =
               <option value="NUEVA">🔵 Nueva</option>
             </select>
           </div>
+
+          {/* Selector de gerente - solo visible para ADMIN */}
+          {usuario?.rol === 'ADMIN' && (
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Asignar a Gerente (opcional)</label>
+              <select
+                value={formData.gerenteZonaId}
+                onChange={(e) => setFormData({ ...formData, gerenteZonaId: e.target.value })}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg"
+              >
+                <option value="">Sin asignar</option>
+                {gerentes.map((g) => (
+                  <option key={g.id} value={g.id}>{g.nombre} - {g.region}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Mensaje informativo para GERENTE */}
+          {usuario?.rol === 'GERENTE_ZONA' && (
+            <div className="text-xs text-slate-500 bg-slate-50 p-2 rounded-lg">
+              ℹ️ La vendedora será asignada automáticamente a tu zona
+            </div>
+          )}
+
           <div className="flex justify-end gap-3 pt-4">
             <button
               type="button"
