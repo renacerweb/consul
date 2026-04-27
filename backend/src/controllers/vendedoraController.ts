@@ -14,7 +14,6 @@ export async function listarVendedorasController(req: Request, res: Response) {
     const params: any[] = [];
 
     if (usuario.rol === 'GERENTE_ZONA') {
-      // El gerente ve las vendedoras que ha reportado (basado en historial)
       query += ` WHERE h."gerenteZonaId" = $1`;
       params.push(usuario.gerenteZonaId);
     }
@@ -87,14 +86,26 @@ export async function buscarVendedoraController(req: Request, res: Response) {
 
 export async function crearVendedoraController(req: Request, res: Response) {
   try {
-    const { nombre, cedula, reputacion, telefono, direccion } = req.body;
+    const { nombre, cedula, reputacion, telefono, direccion, gerenteZonaId } = req.body;
     const usuario = (req as any).usuario;
 
-    // Validar que el gerente tenga gerenteZonaId
-    if (!usuario.gerenteZonaId) {
+    // 🔧 CORRECCIÓN: Solo validar gerenteZonaId si el usuario es GERENTE_ZONA
+    if (usuario.rol === 'GERENTE_ZONA' && !usuario.gerenteZonaId) {
       console.error('Gerente sin gerenteZonaId:', usuario);
       return res.status(400).json({ error: 'Usuario gerente no tiene zona asignada' });
     }
+
+    // Determinar qué gerenteZonaId usar
+    let gerenteAsignadoId = null;
+    
+    if (usuario.rol === 'GERENTE_ZONA') {
+      // Gerente: usa su propia zona
+      gerenteAsignadoId = usuario.gerenteZonaId;
+    } else if (usuario.rol === 'ADMIN' && gerenteZonaId) {
+      // Admin: usa el gerente seleccionado
+      gerenteAsignadoId = parseInt(gerenteZonaId);
+    }
+    // Si es ADMIN y no seleccionó gerente, gerenteAsignadoId se queda null
 
     let vendedoraResult = await pool.query(
       `SELECT id FROM "Vendedora" WHERE cedula = $1`,
@@ -120,20 +131,18 @@ export async function crearVendedoraController(req: Request, res: Response) {
       `SELECT id FROM "HistorialVendedora" 
        WHERE "vendedoraId" = $1 AND "gerenteZonaId" = $2 AND reputacion = $3
        AND "fechaReporte" > NOW() - INTERVAL '10 seconds'`,
-      [vendedoraId, usuario.gerenteZonaId, reputacion]
+      [vendedoraId, gerenteAsignadoId, reputacion]
     );
 
     if (existeReporte.rows.length === 0) {
-      // No existe reporte reciente, insertar
       await pool.query(
         `INSERT INTO "HistorialVendedora" ("vendedoraId", "gerenteZonaId", reputacion)
          VALUES ($1, $2, $3)`,
-        [vendedoraId, usuario.gerenteZonaId, reputacion]
+        [vendedoraId, gerenteAsignadoId, reputacion]
       );
-      console.log(`✅ Reporte creado: vendedora ${vendedoraId}, gerente ${usuario.gerenteZonaId}, reputacion ${reputacion}`);
+      console.log(`✅ Reporte creado: vendedora ${vendedoraId}, gerente ${gerenteAsignadoId}, reputacion ${reputacion}`);
     } else {
-      // Reporte duplicado evitado
-      console.log(`⚠️ Reporte duplicado evitado para vendedora ${vendedoraId}, gerente ${usuario.gerenteZonaId}`);
+      console.log(`⚠️ Reporte duplicado evitado para vendedora ${vendedoraId}, gerente ${gerenteAsignadoId}`);
       return res.status(409).json({ mensaje: 'Ya has reportado esta vendedora recientemente con la misma reputación' });
     }
 
@@ -162,7 +171,6 @@ export async function actualizarVendedoraController(req: Request, res: Response)
     }
 
     if (usuario.rol === 'ADMIN' || usuario.rol === 'AUXILIAR') {
-      // Verificar duplicado para admin/auxiliar
       const existeReporte = await pool.query(
         `SELECT id FROM "HistorialVendedora" 
          WHERE "vendedoraId" = $1 AND "gerenteZonaId" = $2 AND reputacion = $3
@@ -191,7 +199,6 @@ export async function actualizarVendedoraController(req: Request, res: Response)
       });
     }
 
-    // Verificar duplicado para gerente
     const existeReporte = await pool.query(
       `SELECT id FROM "HistorialVendedora" 
        WHERE "vendedoraId" = $1 AND "gerenteZonaId" = $2 AND reputacion = $3
