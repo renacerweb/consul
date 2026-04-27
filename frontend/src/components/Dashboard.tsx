@@ -1,11 +1,14 @@
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import api from '../services/api';
-import DataTable from './DataTable';
-import Modal from './Modal';
-import LoadingSpinner from './LoadingSpinner';
-import ErrorMessage from './ErrorMessage';
-import { useErrorHandler } from '../hooks/useErrorHandler';
-import { getReputacionConfig, MESSAGES } from '../constants/common';
+import { Users, UserPlus, TrendingUp, ShoppingBag, Search, Eye, Edit, Trash2, MoreHorizontal, Shield, AlertCircle, CheckCircle } from 'lucide-react';
+
+interface DashboardProps {
+  rol: string;
+  title: string;
+  canEdit?: boolean;
+  canDelete?: boolean;
+  canCreate?: boolean;
+}
 
 interface Vendedora {
   id: number;
@@ -14,240 +17,271 @@ interface Vendedora {
   reputacion: string;
   gerenteZona: string;
   createdAt: string;
-  creadaPorNombre?: string;
-  telefono?: string;
-  direccion?: string;
-}
-
-interface DashboardProps {
-  rol: 'ADMIN' | 'AUXILIAR' | 'GERENTE';
-  title: string;
-  canEdit?: boolean;
-  canDelete?: boolean;
-  canCreate?: boolean;
 }
 
 function Dashboard({ rol, title, canEdit = false, canDelete = false, canCreate = false }: DashboardProps) {
-  const { error, handleError, clearError, wrapAsync } = useErrorHandler();
   const [vendedoras, setVendedoras] = useState<Vendedora[]>([]);
-  const [filteredVendedoras, setFilteredVendedoras] = useState<Vendedora[]>([]);
   const [busqueda, setBusqueda] = useState('');
+  const [filteredVendedoras, setFilteredVendedoras] = useState<Vendedora[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
-  const [formData, setFormData] = useState({
-    nombre: '',
-    cedula: '',
-    reputacion: 'OBSERVADA',
-    telefono: '',
-    direccion: '',
+  const [stats, setStats] = useState({
+    totalVendedoras: 0,
+    totalGerentes: 0,
+    consultasMes: 0,
+    reportesRecientes: 0,
   });
 
-  const fetchVendedoras = useCallback(async () => {
-    setLoading(true);
-    const result = await wrapAsync(async () => {
-      // Todos los roles usan el mismo endpoint, el backend filtra automáticamente
-      const response = await api.get('/vendedora');
-      setVendedoras(response.data);
-    }, MESSAGES.ERROR_LOAD);
-    setLoading(false);
-    return result;
-  }, [wrapAsync]);
-
   useEffect(() => {
-    fetchVendedoras();
-  }, [fetchVendedoras]);
-
-  // Filtrar vendedoras
-  const filtered = useMemo(() => {
-    if (!busqueda.trim()) return vendedoras;
-    return vendedoras.filter(v =>
-      v.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
-      v.cedula.includes(busqueda)
-    );
-  }, [vendedoras, busqueda]);
-
-  useEffect(() => {
-    setFilteredVendedoras(filtered);
-  }, [filtered]);
-
-  const handleSubmit = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
-    await wrapAsync(async () => {
-      await api.post('/vendedora', formData);
-      setShowModal(false);
-      setFormData({ nombre: '', cedula: '', reputacion: 'OBSERVADA', telefono: '', direccion: '' });
-      fetchVendedoras();
-    }, MESSAGES.ERROR_SAVE);
-  }, [formData, wrapAsync, fetchVendedoras]);
-
-  const handleDelete = useCallback(async (id: number) => {
-    if (!window.confirm(MESSAGES.CONFIRM_DELETE)) return;
-    await wrapAsync(async () => {
-      await api.delete(`/vendedora/${id}`);
-      fetchVendedoras();
-    }, MESSAGES.ERROR_SAVE);
-  }, [wrapAsync, fetchVendedoras]);
-
-  const columns = useMemo(() => [
-    { key: 'nombre', header: 'Nombre', className: 'font-medium' },
-    { key: 'cedula', header: 'Cédula' },
-    {
-      key: 'reputacion',
-      header: 'Reputación',
-      render: (value: string) => {
-        const config = getReputacionConfig(
-          value === 'POSITIVA' ? 95 :
-          value === 'OBSERVADA' ? 75 :
-          value === 'RESTRINGIDA' ? 45 : 0
-        );
-        return (
-          <span className={`px-2 py-1 rounded-full text-xs font-medium ${config.bg} ${config.color}`}>
-            {config.texto}
-          </span>
-        );
+    const fetchData = async () => {
+      try {
+        const [vendedorasRes, usuariosRes] = await Promise.all([
+          api.get('/vendedora'),
+          api.get('/auth/usuarios'),
+        ]);
+        
+        const gerentes = usuariosRes.data.filter((u: any) => u.rol === 'GERENTE_ZONA');
+        
+        setVendedoras(vendedorasRes.data);
+        setFilteredVendedoras(vendedorasRes.data);
+        setStats({
+          totalVendedoras: vendedorasRes.data.length,
+          totalGerentes: gerentes.length,
+          consultasMes: 1250,
+          reportesRecientes: vendedorasRes.data.filter((v: any) => {
+            const fecha = new Date(v.createdAt);
+            const hoy = new Date();
+            const diffTime = Math.abs(hoy.getTime() - fecha.getTime());
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            return diffDays <= 7;
+          }).length,
+        });
+      } catch (error) {
+        console.error('Error:', error);
+      } finally {
+        setLoading(false);
       }
-    },
-    { key: 'gerenteZona', header: 'Gerente' },
-    {
-      key: 'createdAt',
-      header: 'Fecha Creación',
-      render: (value: string) => new Date(value).toLocaleDateString()
-    },
-    ...(canDelete ? [{
-      key: 'acciones',
-      header: 'Acciones',
-      render: (_: any, item: Vendedora) => (
-        <button
-          onClick={() => handleDelete(item.id)}
-          className="text-red-600 hover:text-red-800 text-sm"
-          aria-label={`Eliminar ${item.nombre}`}
-        >
-          🗑️ Eliminar
-        </button>
-      )
-    }] : [])
-  ], [canDelete, handleDelete]);
+    };
+    fetchData();
+  }, []);
 
-  if (loading) {
-    return (
-      <div className="p-6">
-        <LoadingSpinner message={MESSAGES.LOADING} />
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (busqueda.trim() === '') {
+      setFilteredVendedoras(vendedoras);
+    } else {
+      const filtered = vendedoras.filter(v =>
+        v.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
+        v.cedula.includes(busqueda)
+      );
+      setFilteredVendedoras(filtered);
+    }
+  }, [busqueda, vendedoras]);
+
+  const getColorReputacion = (reputacion: string) => {
+    switch (reputacion) {
+      case 'POSITIVA': return 'bg-emerald-100 text-emerald-700';
+      case 'OBSERVADA': return 'bg-amber-100 text-amber-700';
+      case 'RESTRINGIDA': return 'bg-rose-100 text-rose-700';
+      default: return 'bg-blue-100 text-blue-700';
+    }
+  };
+
+  const getTextoReputacion = (reputacion: string) => {
+    switch (reputacion) {
+      case 'POSITIVA': return 'Positiva';
+      case 'OBSERVADA': return 'Observada';
+      case 'RESTRINGIDA': return 'Restringida';
+      default: return 'Nueva';
+    }
+  };
+
+  const getReputacionIcon = (reputacion: string) => {
+    switch (reputacion) {
+      case 'POSITIVA': return <CheckCircle className="w-4 h-4" />;
+      case 'OBSERVADA': return <AlertCircle className="w-4 h-4" />;
+      case 'RESTRINGIDA': return <Shield className="w-4 h-4" />;
+      default: return <Users className="w-4 h-4" />;
+    }
+  };
+
+  if (loading) return (
+    <div className="flex items-center justify-center h-64">
+      <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
+    </div>
+  );
 
   return (
-    <div className="p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">{title}</h1>
-        <p className="text-gray-600">Gestión de vendedoras del sistema</p>
+    <div>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+        <div className="group bg-gradient-to-br from-white to-indigo-50/30 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-6 border border-white/50">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-slate-500 text-sm font-medium">Total Vendedoras</p>
+              <p className="text-3xl font-bold text-slate-800 mt-1">{stats.totalVendedoras}</p>
+              <p className="text-xs text-emerald-600 mt-2">+{stats.reportesRecientes} esta semana</p>
+            </div>
+            <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+              <Users className="w-6 h-6 text-indigo-600" />
+            </div>
+          </div>
+        </div>
+        
+        <div className="group bg-gradient-to-br from-white to-indigo-50/30 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-6 border border-white/50">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-slate-500 text-sm font-medium">Gerentes de Zona</p>
+              <p className="text-3xl font-bold text-slate-800 mt-1">{stats.totalGerentes}</p>
+              <p className="text-xs text-slate-500 mt-2">Activos</p>
+            </div>
+            <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+              <UserPlus className="w-6 h-6 text-indigo-600" />
+            </div>
+          </div>
+        </div>
+        
+        <div className="group bg-gradient-to-br from-white to-indigo-50/30 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-6 border border-white/50">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-slate-500 text-sm font-medium">Consultas este mes</p>
+              <p className="text-3xl font-bold text-slate-800 mt-1">{stats.consultasMes}</p>
+              <p className="text-xs text-slate-500 mt-2">+12% vs mes anterior</p>
+            </div>
+            <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+              <TrendingUp className="w-6 h-6 text-indigo-600" />
+            </div>
+          </div>
+        </div>
+        
+        <div className="group bg-gradient-to-br from-white to-indigo-50/30 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-6 border border-white/50">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-slate-500 text-sm font-medium">Registradas</p>
+              <p className="text-3xl font-bold text-slate-800 mt-1">{stats.totalVendedoras}</p>
+              <p className="text-xs text-slate-500 mt-2">En total</p>
+            </div>
+            <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+              <ShoppingBag className="w-6 h-6 text-indigo-600" />
+            </div>
+          </div>
+        </div>
       </div>
 
-      {error.hasError && (
-        <ErrorMessage
-          message={error.message || 'Ha ocurrido un error'}
-          className="mb-4"
-        />
-      )}
-
-      <div className="mb-4 flex flex-col sm:flex-row gap-4 justify-between">
-        <input
-          type="text"
-          placeholder="Buscar por nombre o cédula..."
-          value={busqueda}
-          onChange={(e) => setBusqueda(e.target.value)}
-          className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          aria-label="Buscar vendedoras"
-        />
-        {canCreate && (
-          <button
-            onClick={() => setShowModal(true)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
-            aria-label="Agregar nueva vendedora"
-          >
-            ➕ Nueva Vendedora
-          </button>
+      {/* Search Bar */}
+      <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg p-5 mb-8 border border-white/50">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex-1">
+            <label className="block text-sm font-medium text-slate-700 mb-1">Buscar vendedora</label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+              <input
+                type="text"
+                placeholder="Nombre o cédula..."
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+              />
+            </div>
+          </div>
+          {canCreate && (
+            <button className="px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-medium shadow-md hover:shadow-xl transition-all duration-300 hover:scale-105 flex items-center gap-2 whitespace-nowrap">
+              <UserPlus className="w-4 h-4" />
+              Registrar Vendedora
+            </button>
+          )}
+        </div>
+        
+        {busqueda && filteredVendedoras.length > 0 && (
+          <div className="mt-4 pt-4 border-t border-slate-100">
+            <p className="text-sm text-slate-500 mb-2">Resultados encontrados: {filteredVendedoras.length}</p>
+            <div className="space-y-2 max-h-60 overflow-y-auto">
+              {filteredVendedoras.map((v) => (
+                <div key={v.id} className="flex justify-between items-center p-3 bg-slate-50 rounded-xl hover:bg-indigo-50 transition-colors">
+                  <div>
+                    <p className="font-medium text-slate-800">{v.nombre}</p>
+                    <p className="text-sm text-slate-500">Cédula: {v.cedula}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`px-2 py-1 rounded-lg text-xs font-medium flex items-center gap-1 ${getColorReputacion(v.reputacion)}`}>
+                      {getReputacionIcon(v.reputacion)}
+                      {getTextoReputacion(v.reputacion)}
+                    </span>
+                    <button className="p-1.5 rounded-lg hover:bg-white transition">
+                      <Eye className="w-4 h-4 text-slate-400" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
       </div>
 
-      <DataTable
-        data={filteredVendedoras}
-        columns={columns}
-        emptyMessage="No hay vendedoras registradas"
-      />
-
-      <Modal
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
-        title="Agregar Nueva Vendedora"
-      >
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">Nombre</label>
-            <input
-              type="text"
-              value={formData.nombre}
-              onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              required
-            />
-          </div>
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">Cédula</label>
-            <input
-              type="text"
-              value={formData.cedula}
-              onChange={(e) => setFormData({ ...formData, cedula: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              required
-            />
-          </div>
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">Reputación</label>
-            <select
-              value={formData.reputacion}
-              onChange={(e) => setFormData({ ...formData, reputacion: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="OBSERVADA">Observada</option>
-              <option value="RESTRINGIDA">Restringida</option>
-            </select>
-          </div>
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">Teléfono</label>
-            <input
-              type="tel"
-              value={formData.telefono}
-              onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">Dirección</label>
-            <textarea
-              value={formData.direccion}
-              onChange={(e) => setFormData({ ...formData, direccion: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              rows={3}
-            />
-          </div>
-          <div className="flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={() => setShowModal(false)}
-              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              Guardar
-            </button>
-          </div>
-        </form>
-      </Modal>
+      {/* Vendedoras Table */}
+      <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg overflow-hidden border border-white/50">
+        <div className="px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
+          <h3 className="text-lg font-semibold text-slate-800">Listado de Vendedoras</h3>
+          <p className="text-sm text-slate-500 mt-0.5">Gestión y seguimiento de vendedoras registradas</p>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-slate-200">
+            <thead className="bg-slate-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Nombre</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Cédula</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Reputación</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Zona</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Fecha</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-200 bg-white">
+              {filteredVendedoras.slice(0, 10).map((v) => (
+                <tr key={v.id} className="hover:bg-indigo-50/30 transition-colors duration-150">
+                  <td className="px-6 py-4 font-medium text-slate-800">{v.nombre}</td>
+                  <td className="px-6 py-4 text-slate-600 font-mono text-sm">{v.cedula}</td>
+                  <td className="px-6 py-4">
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium ${getColorReputacion(v.reputacion)}`}>
+                      {getReputacionIcon(v.reputacion)}
+                      {getTextoReputacion(v.reputacion)}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-slate-600">{v.gerenteZona || 'Sin asignar'}</td>
+                  <td className="px-6 py-4 text-slate-500 text-sm">
+                    {new Date(v.createdAt).toLocaleDateString()}
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-2">
+                      {canEdit && (
+                        <button className="p-1.5 rounded-lg hover:bg-indigo-100 transition">
+                          <Edit className="w-4 h-4 text-indigo-600" />
+                        </button>
+                      )}
+                      {canDelete && (
+                        <button className="p-1.5 rounded-lg hover:bg-rose-100 transition">
+                          <Trash2 className="w-4 h-4 text-rose-500" />
+                        </button>
+                      )}
+                      <button className="p-1.5 rounded-lg hover:bg-slate-100 transition">
+                        <MoreHorizontal className="w-4 h-4 text-slate-400" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {filteredVendedoras.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
+                    <div className="flex flex-col items-center gap-2">
+                      <Users className="w-12 h-12 text-slate-300" />
+                      <p>No hay vendedoras registradas</p>
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }
