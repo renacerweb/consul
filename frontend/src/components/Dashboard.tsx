@@ -27,7 +27,7 @@ interface Gerente {
   region: string;
 }
 
-function Dashboard({ rol, title, canEdit = false, canDelete = false, canCreate = false }: DashboardProps) {
+function Dashboard({ canEdit = false, canDelete = false, canCreate = false }: DashboardProps) {
   const [vendedoras, setVendedoras] = useState<Vendedora[]>([]);
   const [busqueda, setBusqueda] = useState('');
   const [filteredVendedoras, setFilteredVendedoras] = useState<Vendedora[]>([]);
@@ -50,13 +50,11 @@ function Dashboard({ rol, title, canEdit = false, canDelete = false, canCreate =
     reportesRecientes: 0,
   });
 
-  // Cargar usuario del localStorage
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('usuario') || '{}');
     setUsuario(user);
   }, []);
 
-  // Cargar lista de gerentes (para el selector del ADMIN)
   useEffect(() => {
     const fetchGerentes = async () => {
       try {
@@ -119,14 +117,11 @@ function Dashboard({ rol, title, canEdit = false, canDelete = false, canCreate =
     try {
       const user = JSON.parse(localStorage.getItem('usuario') || '{}');
       
-      // Determinar gerenteZonaId según el rol
       let gerenteZonaId = null;
       
       if (user.rol === 'GERENTE_ZONA') {
-        // Gerente: usa su propia zona automáticamente
         gerenteZonaId = user.gerenteZonaId;
       } else if (user.rol === 'ADMIN' && formData.gerenteZonaId) {
-        // Admin: usa el gerente seleccionado
         gerenteZonaId = parseInt(formData.gerenteZonaId);
       }
 
@@ -185,11 +180,13 @@ function Dashboard({ rol, title, canEdit = false, canDelete = false, canCreate =
     }
   };
 
-  if (loading) return (
-    <div className="flex items-center justify-center h-64">
-      <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
-    </div>
-  );
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -319,7 +316,7 @@ function Dashboard({ rol, title, canEdit = false, canDelete = false, canCreate =
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-200 bg-white">
+            <tbody className="bg-white divide-y divide-slate-200">
               {filteredVendedoras.slice(0, 10).map((v) => (
                 <tr key={v.id} className="hover:bg-indigo-50/30 transition-colors duration-150">
                   <td className="px-6 py-4 font-medium text-slate-800">{v.nombre}</td>
