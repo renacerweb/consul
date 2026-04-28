@@ -55,6 +55,7 @@ function Dashboard({ canEdit = false, canDelete = false, canCreate = false }: Da
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('usuario') || '{}');
     setUsuario(user);
+    console.log('Usuario logueado:', user);
   }, []);
 
   useEffect(() => {
@@ -62,6 +63,7 @@ function Dashboard({ canEdit = false, canDelete = false, canCreate = false }: Da
       try {
         const response = await api.get('/auth/usuarios?rol=GERENTE_ZONA');
         setGerentes(response.data);
+        console.log('Gerentes cargados:', response.data);
       } catch (error) {
         console.error('Error al cargar gerentes:', error);
       }
@@ -77,6 +79,8 @@ function Dashboard({ canEdit = false, canDelete = false, canCreate = false }: Da
           api.get('/auth/usuarios?rol=GERENTE_ZONA'),
         ]);
         
+        console.log('Vendedoras desde API:', vendedorasRes.data);
+        
         const gerentesPorId: Record<number, any> = {};
         usuariosRes.data.forEach((u: any) => {
           gerentesPorId[u.id] = u;
@@ -84,6 +88,7 @@ function Dashboard({ canEdit = false, canDelete = false, canCreate = false }: Da
         
         const vendedorasConZona = vendedorasRes.data.map((v: any) => {
           const gerente = v.creadaPorId ? gerentesPorId[v.creadaPorId] : null;
+          console.log(`Vendedora ${v.nombre}: creadaPorId=${v.creadaPorId}, gerente=`, gerente);
           return {
             ...v,
             creadaPor: gerente?.nombre || null,
@@ -132,22 +137,36 @@ function Dashboard({ canEdit = false, canDelete = false, canCreate = false }: Da
     try {
       const user = JSON.parse(localStorage.getItem('usuario') || '{}');
       
-      let creadaPorId = null;
+      let gerenteZonaId = null;
       
       if (user.rol === 'GERENTE_ZONA') {
-        creadaPorId = user.id;
+        gerenteZonaId = user.gerenteZonaId;
       } else if (user.rol === 'ADMIN' && formData.creadaPorId) {
-        creadaPorId = parseInt(formData.creadaPorId);
+        gerenteZonaId = parseInt(formData.creadaPorId);
       }
-      
-      await api.post('/vendedora', {
+
+      console.log('=== ENVIANDO VENDEDORA ===');
+      console.log('Usuario rol:', user.rol);
+      console.log('gerenteZonaId a enviar:', gerenteZonaId);
+      console.log('Datos completos:', {
         nombre: formData.nombre,
         cedula: formData.cedula,
         reputacion: formData.reputacion,
         telefono: formData.telefono,
         direccion: formData.direccion,
-        creadaPorId: creadaPorId,
+        gerenteZonaId: gerenteZonaId,
       });
+
+      const response = await api.post('/vendedora', {
+        nombre: formData.nombre,
+        cedula: formData.cedula,
+        reputacion: formData.reputacion,
+        telefono: formData.telefono,
+        direccion: formData.direccion,
+        gerenteZonaId: gerenteZonaId,
+      });
+      
+      console.log('Respuesta del servidor:', response.data);
       
       setShowModal(false);
       setFormData({ 
@@ -183,6 +202,7 @@ function Dashboard({ canEdit = false, canDelete = false, canCreate = false }: Da
       setFilteredVendedoras(vendedorasConZona);
       alert('✅ Vendedora registrada exitosamente');
     } catch (error: any) {
+      console.error('Error completo:', error);
       alert('❌ Error al registrar vendedora: ' + (error.response?.data?.error || 'Error desconocido'));
     }
   };
@@ -232,7 +252,6 @@ function Dashboard({ canEdit = false, canDelete = false, canCreate = false }: Da
 
   return (
     <div>
-      {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
         <div className="group bg-gradient-to-br from-white to-indigo-50/30 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-6 border border-white/50">
           <div className="flex items-center justify-between">
@@ -287,7 +306,6 @@ function Dashboard({ canEdit = false, canDelete = false, canCreate = false }: Da
         </div>
       </div>
 
-      {/* Search Bar */}
       <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg p-5 mb-8 border border-white/50">
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1">
@@ -315,7 +333,6 @@ function Dashboard({ canEdit = false, canDelete = false, canCreate = false }: Da
         </div>
       </div>
 
-      {/* Vendedoras Table */}
       <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg overflow-hidden border border-white/50">
         <div className="px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
           <h3 className="text-lg font-semibold text-slate-800">Listado de Vendedoras</h3>
@@ -390,7 +407,6 @@ function Dashboard({ canEdit = false, canDelete = false, canCreate = false }: Da
         </div>
       </div>
 
-      {/* Modal */}
       <Modal isOpen={showModal} onClose={() => setShowModal(false)} title="Registrar Vendedora" size="md">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>

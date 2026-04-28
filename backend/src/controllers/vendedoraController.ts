@@ -97,27 +97,30 @@ export async function crearVendedoraController(req: Request, res: Response) {
     const { nombre, cedula, reputacion, telefono, direccion, gerenteZonaId } = req.body;
     const usuario = (req as any).usuario;
 
-    console.log('📥 Datos recibidos:', { nombre, cedula, reputacion, gerenteZonaId, usuarioRol: usuario.rol });
+    console.log('📥 Datos recibidos en backend:');
+    console.log('  - nombre:', nombre);
+    console.log('  - cedula:', cedula);
+    console.log('  - reputacion:', reputacion);
+    console.log('  - gerenteZonaId recibido:', gerenteZonaId);
+    console.log('  - usuario.rol:', usuario.rol);
+    console.log('  - usuario.id:', usuario.id);
 
-    // Determinar quién es el responsable (creadaPorId)
     let creadaPorId = null;
     
     if (usuario.rol === 'GERENTE_ZONA') {
-      if (!usuario.gerenteZonaId) {
-        console.error('Gerente sin gerenteZonaId:', usuario);
-        return res.status(400).json({ error: 'Usuario gerente no tiene zona asignada' });
-      }
-      creadaPorId = usuario.gerenteZonaId;
-      console.log('📌 Es GERENTE, creadaPorId =', creadaPorId);
+      creadaPorId = usuario.id;
+      console.log('📌 Caso GERENTE: creadaPorId =', creadaPorId);
     } else if (usuario.rol === 'ADMIN' && gerenteZonaId) {
       creadaPorId = parseInt(gerenteZonaId);
-      console.log('📌 Es ADMIN con gerente seleccionado, creadaPorId =', creadaPorId);
+      console.log('📌 Caso ADMIN con gerente seleccionado: creadaPorId =', creadaPorId);
+    } else if (usuario.rol === 'ADMIN' && !gerenteZonaId) {
+      creadaPorId = null;
+      console.log('📌 Caso ADMIN sin gerente seleccionado: creadaPorId = null');
     } else {
       creadaPorId = usuario.id;
-      console.log('📌 Por defecto, creadaPorId =', creadaPorId);
+      console.log('📌 Caso por defecto: creadaPorId =', creadaPorId);
     }
 
-    // Buscar o crear vendedora
     let vendedoraResult = await pool.query(
       `SELECT id FROM "Vendedora" WHERE cedula = $1`,
       [cedula]
@@ -133,13 +136,12 @@ export async function crearVendedoraController(req: Request, res: Response) {
         [nombre, cedula, telefono || null, direccion || null, creadaPorId]
       );
       vendedoraId = insertResult.rows[0].id;
-      console.log('✅ Vendedora creada, ID:', vendedoraId);
+      console.log('✅ Vendedora creada, ID:', vendedoraId, 'creadaPorId:', creadaPorId);
     } else {
       vendedoraId = vendedoraResult.rows[0].id;
       console.log('📌 Vendedora existente, ID:', vendedoraId);
     }
 
-    // Verificar si ya existe un reporte reciente
     const existeReporte = await pool.query(
       `SELECT id FROM "HistorialVendedora" 
        WHERE "vendedoraId" = $1 AND "gerenteZonaId" = $2 AND reputacion = $3
