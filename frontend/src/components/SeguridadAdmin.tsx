@@ -59,51 +59,31 @@ function SeguridadAdmin() {
   }, [wrapAsync, fetchIpsBloqueadas]);
 
   const ipsColumns = useMemo(() => [
-    { key: 'ip', header: 'Dirección IP', className: 'font-mono' },
-    { key: 'motivo', header: 'Motivo' },
-    {
-      key: 'fechaBloqueo',
-      header: 'Fecha Bloqueo',
-      render: (value: string) => new Date(value).toLocaleString()
-    },
-    {
-      key: 'fechaExpiracion',
-      header: 'Fecha Expiración',
-      render: (value: string) => new Date(value).toLocaleString()
-    },
-    { key: 'intentosRegistrados', header: 'Intentos' },
-    {
-      key: 'acciones',
-      header: 'Acciones',
-      render: (_: any, item: IPBloqueada) => (
-        <button
-          onClick={() => handleDesbloquearIP(item.id)}
-          className="text-green-600 hover:text-green-800 text-sm"
-          aria-label={`Desbloquear IP ${item.ip}`}
-        >
-          🔓 Desbloquear
-        </button>
-      )
-    }
+    { key: 'ip', label: 'Dirección IP', className: 'font-mono' },
+    { key: 'motivo', label: 'Motivo' },
+    { key: 'fechaBloqueo', label: 'Fecha Bloqueo', render: (value: string) => new Date(value).toLocaleString() },
+    { key: 'fechaExpiracion', label: 'Fecha Expiración', render: (value: string) => new Date(value).toLocaleString() },
+    { key: 'intentosRegistrados', label: 'Intentos' },
+    { key: 'acciones', label: 'Acciones', render: (_: any, item: IPBloqueada) => (
+      <button
+        onClick={() => handleDesbloquearIP(item.id)}
+        className="text-green-600 hover:text-green-800 text-sm"
+        aria-label={`Desbloquear IP ${item.ip}`}
+      >
+        🔓 Desbloquear
+      </button>
+    )}
   ], [handleDesbloquearIP]);
 
   const auditoriaColumns = useMemo(() => [
-    { key: 'cedulaConsultada', header: 'Cédula Consultada', className: 'font-mono' },
-    { key: 'ip', header: 'IP Origen', className: 'font-mono' },
-    {
-      key: 'fecha',
-      header: 'Fecha',
-      render: (value: string) => new Date(value).toLocaleString()
-    },
-    {
-      key: 'exitosa',
-      header: 'Resultado',
-      render: (value: boolean) => (
-        <span className={`px-2 py-1 rounded-full text-xs font-medium ${value ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-          {value ? 'Exitosa' : 'Fallida'}
-        </span>
-      )
-    }
+    { key: 'cedulaConsultada', label: 'Cédula Consultada', className: 'font-mono' },
+    { key: 'ip', label: 'IP Origen', className: 'font-mono' },
+    { key: 'fecha', label: 'Fecha', render: (value: string) => new Date(value).toLocaleString() },
+    { key: 'exitosa', label: 'Resultado', render: (value: boolean) => (
+      <span className={`px-2 py-1 rounded-full text-xs font-medium ${value ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+        {value ? 'Exitosa' : 'Fallida'}
+      </span>
+    )}
   ], []);
 
   if (loading) {

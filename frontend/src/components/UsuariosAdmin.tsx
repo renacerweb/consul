@@ -1,335 +1,137 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import api from '../services/api';
 import DataTable from './DataTable';
-import Modal from './Modal';
-import { UserPlus } from 'lucide-react';
+import LoadingSpinner from './LoadingSpinner';
+import ErrorMessage from './ErrorMessage';
+import { useErrorHandler } from '../hooks/useErrorHandler';
+import { MESSAGES } from '../constants/common';
 
-interface Usuario {
+interface IPBloqueada {
   id: number;
-  email: string;
-  nombre: string;
-  rol: string;
-  region?: string;
-  activo: boolean;
-  createdAt: string;
+  ip: string;
+  motivo: string;
+  fechaBloqueo: string;
+  fechaExpiracion: string;
+  intentosRegistrados: number;
 }
 
-function UsuariosAdmin() {
-  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [showModal, setShowModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [editUsuario, setEditUsuario] = useState<Usuario | null>(null);
-  const [formData, setFormData] = useState({
-    email: '',
-    nombre: '',
-    password: '',
-    rol: 'GERENTE_ZONA',
-    region: '',
-  });
-  const [editFormData, setEditFormData] = useState({
-    email: '',
-    nombre: '',
-    rol: '',
-    region: '',
-  });
+interface Auditoria {
+  id: number;
+  cedulaConsultada: string;
+  usuarioId: number;
+  ip: string;
+  fecha: string;
+  exitosa: boolean;
+}
 
-  const fetchUsuarios = async () => {
-    try {
-      setLoading(true);
-      const response = await api.get('/auth/usuarios');
-      setUsuarios(response.data);
-      setError('');
-    } catch (err: any) {
-      console.error('Error al cargar usuarios:', err);
-      setError('Error al cargar usuarios');
-    } finally {
-      setLoading(false);
-    }
-  };
+function SeguridadAdmin() {
+  const { error, wrapAsync } = useErrorHandler();
+  const [ipsBloqueadas, setIpsBloqueadas] = useState<IPBloqueada[]>([]);
+  const [auditoria, setAuditoria] = useState<Auditoria[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState<'bloqueadas' | 'auditoria'>('bloqueadas');
+
+  const fetchIpsBloqueadas = useCallback(async () => {
+    await wrapAsync(async () => {
+      const response = await api.get('/seguridad/ips-bloqueadas');
+      setIpsBloqueadas(response.data);
+    }, MESSAGES.ERROR_LOAD);
+  }, [wrapAsync]);
+
+  const fetchAuditoria = useCallback(async () => {
+    await wrapAsync(async () => {
+      const response = await api.get('/seguridad/auditoria');
+      setAuditoria(response.data);
+    }, MESSAGES.ERROR_LOAD);
+  }, [wrapAsync]);
 
   useEffect(() => {
-    fetchUsuarios();
-  }, []);
+    Promise.all([fetchIpsBloqueadas(), fetchAuditoria()]).finally(() => setLoading(false));
+  }, [fetchIpsBloqueadas, fetchAuditoria]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      if (formData.rol === 'GERENTE_ZONA') {
-        await api.post('/auth/registrar-gerente', {
-          email: formData.email,
-          nombre: formData.nombre,
-          password: formData.password,
-          region: formData.region,
-        });
-      } else {
-        await api.post('/auth/registrar', {
-          email: formData.email,
-          nombre: formData.nombre,
-          password: formData.password,
-          rol: formData.rol,
-        });
-      }
-      setShowModal(false);
-      setFormData({ email: '', nombre: '', password: '', rol: 'GERENTE_ZONA', region: '' });
-      fetchUsuarios();
-      alert('✅ Usuario creado exitosamente');
-    } catch (error: any) {
-      alert('❌ Error al crear usuario: ' + (error.response?.data?.error || 'Error desconocido'));
-    }
-  };
+  const handleDesbloquearIP = useCallback(async (id: number) => {
+    if (!window.confirm('¿Está seguro de desbloquear esta IP?')) return;
+    await wrapAsync(async () => {
+      await api.delete(`/seguridad/ips-bloqueadas/${id}`);
+      fetchIpsBloqueadas();
+    }, MESSAGES.ERROR_SAVE);
+  }, [wrapAsync, fetchIpsBloqueadas]);
 
-  const handleSaveEdit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editUsuario) return;
-    try {
-      await api.put(`/auth/usuarios/${editUsuario.id}`, {
-        email: editFormData.email,
-        nombre: editFormData.nombre,
-        rol: editFormData.rol,
-        region: editFormData.region,
-      });
-      setShowEditModal(false);
-      fetchUsuarios();
-      alert('✅ Usuario actualizado correctamente');
-    } catch (error: any) {
-      alert('❌ Error al actualizar usuario: ' + (error.response?.data?.error || 'Error desconocido'));
-    }
-  };
+  const ipsColumns = useMemo(() => [
+    { key: 'ip', label: 'Dirección IP', className: 'font-mono' },
+    { key: 'motivo', label: 'Motivo' },
+    { key: 'fechaBloqueo', label: 'Fecha Bloqueo', render: (value: string) => new Date(value).toLocaleString() },
+    { key: 'fechaExpiracion', label: 'Fecha Expiración', render: (value: string) => new Date(value).toLocaleString() },
+    { key: 'intentosRegistrados', label: 'Intentos' },
+    { key: 'acciones', label: 'Acciones', render: (_: any, item: IPBloqueada) => (
+      <button onClick={() => handleDesbloquearIP(item.id)} className="text-green-600 hover:text-green-800 text-sm">
+        🔓 Desbloquear
+      </button>
+    )}
+  ], [handleDesbloquearIP]);
 
-  const handleDelete = async (id: number) => {
-    if (confirm('¿Eliminar este usuario?')) {
-      try {
-        await api.delete(`/auth/usuarios/${id}`);
-        fetchUsuarios();
-        alert('✅ Usuario eliminado');
-      } catch (error) {
-        alert('❌ Error al eliminar usuario');
-      }
-    }
-  };
-
-  const columns = [
-    { key: 'nombre', label: 'Nombre' },
-    { key: 'email', label: 'Email' },
-    {
-      key: 'rol',
-      label: 'Rol',
-      render: (value: string) => {
-        const roles: Record<string, string> = {
-          ADMIN: '👑 Administrador',
-          AUXILIAR: '🛠️ Auxiliar',
-          GERENTE_ZONA: '📍 Gerente de Zona',
-        };
-        return roles[value] || value;
-      }
-    },
-    {
-      key: 'region',
-      label: 'Región',
-      render: (value: string, row: any) => row.rol === 'GERENTE_ZONA' ? (value || 'Sin asignar') : '-'
-    },
-    {
-      key: 'acciones',
-      label: 'Acciones',
-      render: (_: any, row: Usuario) => (
-        <div className="flex gap-2">
-          <button
-            onClick={() => {
-              setEditUsuario(row);
-              setEditFormData({
-                email: row.email,
-                nombre: row.nombre,
-                rol: row.rol,
-                region: row.region || '',
-              });
-              setShowEditModal(true);
-            }}
-            className="text-indigo-600 hover:text-indigo-800"
-          >
-            ✏️ Editar
-          </button>
-          <button
-            onClick={() => handleDelete(row.id)}
-            className="text-rose-600 hover:text-rose-800"
-          >
-            🗑️ Eliminar
-          </button>
-        </div>
-      )
-    },
-  ];
+  const auditoriaColumns = useMemo(() => [
+    { key: 'cedulaConsultada', label: 'Cédula Consultada', className: 'font-mono' },
+    { key: 'ip', label: 'IP Origen', className: 'font-mono' },
+    { key: 'fecha', label: 'Fecha', render: (value: string) => new Date(value).toLocaleString() },
+    { key: 'exitosa', label: 'Resultado', render: (value: boolean) => (
+      <span className={`px-2 py-1 rounded-full text-xs font-medium ${value ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+        {value ? 'Exitosa' : 'Fallida'}
+      </span>
+    )}
+  ], []);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-center text-red-600">
-        {error}
-      </div>
-    );
+    return <LoadingSpinner message={MESSAGES.LOADING} />;
   }
 
   return (
-    <div>
-      <div className="mb-4 flex justify-between items-center">
-        <div>
-          <h2 className="text-xl font-semibold text-slate-800">Usuarios Registrados</h2>
-          <p className="text-sm text-slate-500">Total: {usuarios.length} usuarios</p>
-        </div>
-        <button
-          onClick={() => setShowModal(true)}
-          className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-medium shadow-md hover:shadow-lg transition-all flex items-center gap-2"
-        >
-          <UserPlus className="w-4 h-4" />
-          Crear Usuario
-        </button>
+    <div className="p-6">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">Panel de Seguridad</h1>
+        <p className="text-gray-600">Monitoreo de seguridad y auditoría del sistema</p>
       </div>
 
-      <DataTable
-        columns={columns}
-        data={usuarios}
-        loading={loading}
-        emptyMessage="No hay usuarios registrados"
-      />
+      {error.hasError && <ErrorMessage message={error.message || 'Ha ocurrido un error'} className="mb-4" />}
 
-      {/* Modal para crear usuario */}
-      <Modal isOpen={showModal} onClose={() => setShowModal(false)} title="Crear Usuario" size="md">
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Nombre</label>
-            <input
-              type="text"
-              value={formData.nombre}
-              onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
-            <input
-              type="email"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Contraseña</label>
-            <input
-              type="password"
-              value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Rol</label>
-            <select
-              value={formData.rol}
-              onChange={(e) => setFormData({ ...formData, rol: e.target.value })}
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg"
-            >
-              <option value="GERENTE_ZONA">Gerente de Zona</option>
-              <option value="AUXILIAR">Auxiliar</option>
-            </select>
-          </div>
-          {formData.rol === 'GERENTE_ZONA' && (
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Región</label>
-              <select
-                value={formData.region}
-                onChange={(e) => setFormData({ ...formData, region: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-200 rounded-lg"
-                required
-              >
-                <option value="">Seleccionar región</option>
-                <option value="Portuguesa">Portuguesa</option>
-                <option value="Cojedes">Cojedes</option>
-              </select>
-            </div>
-          )}
-          <div className="flex justify-end gap-3 pt-4">
-            <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 border border-slate-200 rounded-lg">
-              Cancelar
-            </button>
-            <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded-lg">
-              Crear
-            </button>
-          </div>
-        </form>
-      </Modal>
+      <div className="mb-6 border-b border-gray-200">
+        <nav className="-mb-px flex space-x-8">
+          <button
+            onClick={() => setTab('bloqueadas')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              tab === 'bloqueadas' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            IPs Bloqueadas ({ipsBloqueadas.length})
+          </button>
+          <button
+            onClick={() => setTab('auditoria')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              tab === 'auditoria' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Auditoría ({auditoria.length})
+          </button>
+        </nav>
+      </div>
 
-      {/* Modal para editar usuario */}
-      <Modal isOpen={showEditModal} onClose={() => setShowEditModal(false)} title="Editar Usuario" size="md">
-        <form onSubmit={handleSaveEdit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Nombre</label>
-            <input
-              type="text"
-              value={editFormData.nombre}
-              onChange={(e) => setEditFormData({ ...editFormData, nombre: e.target.value })}
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
-            <input
-              type="email"
-              value={editFormData.email}
-              onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Rol</label>
-            <select
-              value={editFormData.rol}
-              onChange={(e) => setEditFormData({ ...editFormData, rol: e.target.value })}
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg"
-            >
-              <option value="GERENTE_ZONA">Gerente de Zona</option>
-              <option value="AUXILIAR">Auxiliar</option>
-            </select>
-          </div>
-          {editFormData.rol === 'GERENTE_ZONA' && (
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Región</label>
-              <select
-                value={editFormData.region}
-                onChange={(e) => setEditFormData({ ...editFormData, region: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-200 rounded-lg"
-              >
-                <option value="">Seleccionar región</option>
-                <option value="Portuguesa">Portuguesa</option>
-                <option value="Cojedes">Cojedes</option>
-              </select>
-            </div>
-          )}
-          <div className="flex justify-end gap-3 pt-4">
-            <button type="button" onClick={() => setShowEditModal(false)} className="px-4 py-2 border border-slate-200 rounded-lg">
-              Cancelar
-            </button>
-            <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded-lg">
-              Guardar
-            </button>
-          </div>
-        </form>
-      </Modal>
+      {tab === 'bloqueadas' && (
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900 mb-2">Direcciones IP Bloqueadas</h2>
+          <p className="text-gray-600 text-sm mb-4">IPs bloqueadas por intentos de acceso fallidos</p>
+          <DataTable data={ipsBloqueadas} columns={ipsColumns} emptyMessage="No hay IPs bloqueadas" />
+        </div>
+      )}
+
+      {tab === 'auditoria' && (
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900 mb-2">Registro de Auditoría</h2>
+          <p className="text-gray-600 text-sm mb-4">Historial de consultas realizadas al sistema</p>
+          <DataTable data={auditoria} columns={auditoriaColumns} emptyMessage="No hay registros de auditoría" />
+        </div>
+      )}
     </div>
   );
 }
 
-export default UsuariosAdmin;
+export default SeguridadAdmin;

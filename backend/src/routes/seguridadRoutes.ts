@@ -1,9 +1,10 @@
-import { Router } from 'express';
+﻿import { Router } from 'express';
 import { autenticar, permitirRoles } from '../middleware/auth';
 import pool from '../db';
 
 const router = Router();
 
+// GET - Listar IPs bloqueadas
 router.get('/ips-bloqueadas', autenticar, permitirRoles('ADMIN'), async (req, res) => {
   try {
     const result = await pool.query(
@@ -15,6 +16,7 @@ router.get('/ips-bloqueadas', autenticar, permitirRoles('ADMIN'), async (req, re
   }
 });
 
+// GET - Listar auditoría
 router.get('/auditoria', autenticar, permitirRoles('ADMIN'), async (req, res) => {
   try {
     const result = await pool.query(
@@ -26,10 +28,11 @@ router.get('/auditoria', autenticar, permitirRoles('ADMIN'), async (req, res) =>
   }
 });
 
-router.post('/desbloquear-ip', autenticar, permitirRoles('ADMIN'), async (req, res) => {
+// DELETE - Desbloquear IP (código que faltaba)
+router.delete('/ips-bloqueadas/:id', autenticar, permitirRoles('ADMIN'), async (req, res) => {
   try {
-    const { ip } = req.body;
-    await pool.query(`DELETE FROM "IPBloqueada" WHERE ip = $1`, [ip]);
+    const { id } = req.params;
+    await pool.query(`DELETE FROM "IPBloqueada" WHERE id = $1`, [id]);
     res.json({ mensaje: 'IP desbloqueada correctamente' });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
