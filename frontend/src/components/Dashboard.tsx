@@ -196,44 +196,6 @@ function Dashboard({ canEdit = false, canDelete = false, canCreate = false }: Da
     }
   };
 
-  const actualizarGerente = async (vendedoraId: number, gerenteId: string) => {
-    try {
-      await api.put(`/vendedora/${vendedoraId}`, { 
-        gerenteZonaId: gerenteId ? parseInt(gerenteId) : null 
-      });
-      
-      // Recargar datos
-      const [vendedorasRes, usuariosRes] = await Promise.all([
-        api.get('/vendedora'),
-        api.get('/auth/usuarios'),
-      ]);
-      
-      const gerentesPorId: Record<number, any> = {};
-      usuariosRes.data.forEach((u: any) => {
-        if (u.rol === 'GERENTE_ZONA') {
-          gerentesPorId[u.id] = u;
-        }
-      });
-      
-      const vendedorasConZona = vendedorasRes.data.map((v: any) => {
-        const gerente = v.gerenteZonaId ? gerentesPorId[v.gerenteZonaId] : null;
-        return {
-          ...v,
-          gerenteZona: gerente?.nombre || null,
-          zona: gerente?.region || null,
-          gerenteZonaId: v.gerenteZonaId || null,
-        };
-      });
-      
-      setVendedoras(vendedorasConZona);
-      setFilteredVendedoras(vendedorasConZona);
-      alert('✅ Gerente asignado correctamente');
-    } catch (error) {
-      console.error('Error:', error);
-      alert('❌ Error al asignar gerente');
-    }
-  };
-
   const getColorReputacion = (reputacion: string) => {
     switch (reputacion) {
       case 'POSITIVA': return 'bg-emerald-100 text-emerald-700';
@@ -387,7 +349,7 @@ function Dashboard({ canEdit = false, canDelete = false, canCreate = false }: Da
         )}
       </div>
 
-      {/* Vendedoras Table */}
+      {/* Vendedoras Table - Solo Lectura */}
       <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg overflow-hidden border border-white/50">
         <div className="px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
           <h3 className="text-lg font-semibold text-slate-800">Listado de Vendedoras</h3>
@@ -400,7 +362,7 @@ function Dashboard({ canEdit = false, canDelete = false, canCreate = false }: Da
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Nombre</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Cédula</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Reputación</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Gerente Zona</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Gerente que Registró</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Zona</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Fecha</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Acciones</th>
@@ -417,23 +379,8 @@ function Dashboard({ canEdit = false, canDelete = false, canCreate = false }: Da
                       {getTextoReputacion(v.reputacion)}
                     </span>
                   </td>
-                  <td className="px-6 py-4">
-                    {usuario?.rol === 'ADMIN' ? (
-                      <select
-                        value={v.gerenteZonaId || ''}
-                        onChange={(e) => actualizarGerente(v.id, e.target.value)}
-                        className="px-2 py-1 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      >
-                        <option value="">Sin asignar</option>
-                        {gerentes.map((gerente) => (
-                          <option key={gerente.id} value={gerente.id}>
-                            {gerente.nombre} - {gerente.region}
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      <span className="text-slate-600">{v.gerenteZona || 'Sin asignar'}</span>
-                    )}
+                  <td className="px-6 py-4 text-slate-600">
+                    {v.gerenteZona || 'Sin asignar'}
                   </td>
                   <td className="px-6 py-4">
                     <span className={`px-2 py-1 rounded-lg text-xs font-medium ${getColorZona(v.zona)}`}>
