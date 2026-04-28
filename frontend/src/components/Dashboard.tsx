@@ -77,13 +77,11 @@ function Dashboard({ canEdit = false, canDelete = false, canCreate = false }: Da
           api.get('/auth/usuarios?rol=GERENTE_ZONA'),
         ]);
         
-        // Crear mapa de gerentes por ID
         const gerentesPorId: Record<number, any> = {};
         usuariosRes.data.forEach((u: any) => {
           gerentesPorId[u.id] = u;
         });
         
-        // Enriquecer vendedoras con gerente y zona (región)
         const vendedorasConZona = vendedorasRes.data.map((v: any) => {
           const gerente = v.creadaPorId ? gerentesPorId[v.creadaPorId] : null;
           return {
@@ -141,7 +139,7 @@ function Dashboard({ canEdit = false, canDelete = false, canCreate = false }: Da
       } else if (user.rol === 'ADMIN' && formData.creadaPorId) {
         creadaPorId = parseInt(formData.creadaPorId);
       }
-
+      
       await api.post('/vendedora', {
         nombre: formData.nombre,
         cedula: formData.cedula,
@@ -161,7 +159,6 @@ function Dashboard({ canEdit = false, canDelete = false, canCreate = false }: Da
         creadaPorId: '',
       });
       
-      // Recargar datos
       const [vendedorasRes, usuariosRes] = await Promise.all([
         api.get('/vendedora'),
         api.get('/auth/usuarios?rol=GERENTE_ZONA'),
@@ -316,31 +313,6 @@ function Dashboard({ canEdit = false, canDelete = false, canCreate = false }: Da
             </button>
           )}
         </div>
-        
-        {busqueda && filteredVendedoras.length > 0 && (
-          <div className="mt-4 pt-4 border-t border-slate-100">
-            <p className="text-sm text-slate-500 mb-2">Resultados encontrados: {filteredVendedoras.length}</p>
-            <div className="space-y-2 max-h-60 overflow-y-auto">
-              {filteredVendedoras.map((v) => (
-                <div key={v.id} className="flex justify-between items-center p-3 bg-slate-50 rounded-xl hover:bg-indigo-50 transition-colors">
-                  <div>
-                    <p className="font-medium text-slate-800">{v.nombre}</p>
-                    <p className="text-sm text-slate-500">Cédula: {v.cedula}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className={`px-2 py-1 rounded-lg text-xs font-medium flex items-center gap-1 ${getColorReputacion(v.reputacion)}`}>
-                      {getReputacionIcon(v.reputacion)}
-                      {getTextoReputacion(v.reputacion)}
-                    </span>
-                    <button className="p-1.5 rounded-lg hover:bg-white transition">
-                      <Eye className="w-4 h-4 text-slate-400" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Vendedoras Table */}
@@ -418,7 +390,7 @@ function Dashboard({ canEdit = false, canDelete = false, canCreate = false }: Da
         </div>
       </div>
 
-      {/* Modal para registrar vendedora */}
+      {/* Modal */}
       <Modal isOpen={showModal} onClose={() => setShowModal(false)} title="Registrar Vendedora" size="md">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -473,7 +445,6 @@ function Dashboard({ canEdit = false, canDelete = false, canCreate = false }: Da
             </select>
           </div>
 
-          {/* Selector de gerente - solo visible para ADMIN */}
           {usuario?.rol === 'ADMIN' && (
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Asignar a Gerente (opcional)</label>
@@ -490,7 +461,6 @@ function Dashboard({ canEdit = false, canDelete = false, canCreate = false }: Da
             </div>
           )}
 
-          {/* Mensaje informativo para GERENTE */}
           {usuario?.rol === 'GERENTE_ZONA' && (
             <div className="text-xs text-slate-500 bg-slate-50 p-2 rounded-lg">
               ℹ️ La vendedora será asignada automáticamente a tu zona
