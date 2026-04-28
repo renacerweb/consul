@@ -2,7 +2,7 @@ import { ReactNode } from 'react';
 
 interface Column<T> {
   key: keyof T | string;
-  header: string;
+  label: string;  // ← CAMBIAR DE header A label
   render?: (value: any, item: T) => ReactNode;
   className?: string;
 }
@@ -55,7 +55,7 @@ function DataTable<T extends Record<string, any>>({
                 className={`px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider ${column.className || ''}`}
                 scope="col"
               >
-                {column.header}
+                {column.label}  {/* ← CAMBIAR DE header A label */}
               </th>
             ))}
           </tr>
