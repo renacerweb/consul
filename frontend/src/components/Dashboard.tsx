@@ -60,7 +60,7 @@ function Dashboard({ canEdit = false, canDelete = false, canCreate = false }: Da
   useEffect(() => {
     const fetchGerentes = async () => {
       try {
-        const response = await api.get('/gerente-zona');
+        const response = await api.get('/auth/usuarios?rol=GERENTE_ZONA');
         setGerentes(response.data);
       } catch (error) {
         console.error('Error al cargar gerentes:', error);
@@ -72,15 +72,15 @@ function Dashboard({ canEdit = false, canDelete = false, canCreate = false }: Da
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [vendedorasRes, gerentesRes] = await Promise.all([
+        const [vendedorasRes, usuariosRes] = await Promise.all([
           api.get('/vendedora'),
-          api.get('/gerente-zona'),
+          api.get('/auth/usuarios?rol=GERENTE_ZONA'),
         ]);
         
         // Crear mapa de gerentes por ID
         const gerentesPorId: Record<number, any> = {};
-        gerentesRes.data.forEach((g: any) => {
-          gerentesPorId[g.id] = g;
+        usuariosRes.data.forEach((u: any) => {
+          gerentesPorId[u.id] = u;
         });
         
         // Enriquecer vendedoras con gerente y zona (región)
@@ -98,7 +98,7 @@ function Dashboard({ canEdit = false, canDelete = false, canCreate = false }: Da
         setFilteredVendedoras(vendedorasConZona);
         setStats({
           totalVendedoras: vendedorasRes.data.length,
-          totalGerentes: gerentesRes.data.length,
+          totalGerentes: usuariosRes.data.length,
           consultasMes: 1250,
           reportesRecientes: vendedorasRes.data.filter((v: any) => {
             const fecha = new Date(v.createdAt);
@@ -162,14 +162,14 @@ function Dashboard({ canEdit = false, canDelete = false, canCreate = false }: Da
       });
       
       // Recargar datos
-      const [vendedorasRes, gerentesRes] = await Promise.all([
+      const [vendedorasRes, usuariosRes] = await Promise.all([
         api.get('/vendedora'),
-        api.get('/gerente-zona'),
+        api.get('/auth/usuarios?rol=GERENTE_ZONA'),
       ]);
       
       const gerentesPorId: Record<number, any> = {};
-      gerentesRes.data.forEach((g: any) => {
-        gerentesPorId[g.id] = g;
+      usuariosRes.data.forEach((u: any) => {
+        gerentesPorId[u.id] = u;
       });
       
       const vendedorasConZona = vendedorasRes.data.map((v: any) => {
