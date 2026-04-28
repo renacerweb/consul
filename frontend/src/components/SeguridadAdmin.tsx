@@ -30,6 +30,7 @@ function SeguridadAdmin() {
   const [auditoria, setAuditoria] = useState<Auditoria[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<'bloqueadas' | 'auditoria'>('bloqueadas');
+  
 
   const fetchIpsBloqueadas = useCallback(async () => {
     await wrapAsync(async () => {

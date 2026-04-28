@@ -1,41 +1,36 @@
-/**
- * UTILIDADES JWT
- * 
- * Funciones para generar y verificar tokens JWT (JSON Web Tokens)
- * 
- * @module JWTUtils
- */
+// backend/src/utils/jwt.ts
+import jwt from 'jsonwebtoken';
 
-import jwt from 'jsonwebtoken'
+const SECRET = process.env.JWT_SECRET || 'mi-secreto-super-seguro-cambiar-en-produccion';
 
-// Clave secreta para firmar los tokens (debe estar en variables de entorno en producción)
-const SECRET = process.env.JWT_SECRET || 'mi-secreto-super-seguro-cambiar-en-produccion'
-
-/**
- * GENERAR TOKEN JWT
- * 
- * Crea un token firmado con los datos del usuario
- * 
- * @param usuario - Datos del usuario (id, email, rol, gerenteZonaId)
- * @returns Token JWT válido por 24 horas
- */
-export function generarToken(usuario: { id: number; email: string; rol: string; gerenteZonaId?: number }) {
-  return jwt.sign(
-    { id: usuario.id, email: usuario.email, rol: usuario.rol, gerenteZonaId: usuario.gerenteZonaId },
-    SECRET,
-    { expiresIn: '24h' }
-  )
+export interface UsuarioPayload {
+  id: number;
+  email: string;
+  rol: string;
+  regionId?: number;
+  creadoPorId?: number;
 }
 
-/**
- * VERIFICAR TOKEN JWT
- * 
- * Decodifica y valida un token JWT
- * 
- * @param token - Token JWT a verificar
- * @returns Datos del usuario decodificados
- * @throws Error si el token es inválido o ha expirado
- */
-export function verificarToken(token: string) {
-  return jwt.verify(token, SECRET) as { id: number; email: string; rol: string; gerenteZonaId?: number }
+export function generarToken(usuario: {
+  id: number;
+  email: string;
+  rol: string;
+  regionId?: number;
+  creadoPorId?: number;
+}) {
+  return jwt.sign(
+    { 
+      id: usuario.id, 
+      email: usuario.email, 
+      rol: usuario.rol,
+      regionId: usuario.regionId,
+      creadoPorId: usuario.creadoPorId
+    },
+    SECRET,
+    { expiresIn: '24h' }
+  );
+}
+
+export function verificarToken(token: string): UsuarioPayload {
+  return jwt.verify(token, SECRET) as UsuarioPayload;
 }

@@ -68,23 +68,19 @@ function MensajesGerente() {
   const columns = useMemo(() => [
     {
       key: 'leido',
-      header: 'Estado',
+      label: 'Estado',
       render: (value: boolean) => (
         <span className={`px-2 py-1 rounded-full text-xs font-medium ${value ? 'bg-gray-100 text-gray-800' : 'bg-blue-100 text-blue-800'}`}>
           {value ? 'Leído' : 'No leído'}
         </span>
       )
     },
-    { key: 'titulo', header: 'Título', className: 'font-medium' },
-    { key: 'remitenteNombre', header: 'Remitente' },
-    {
-      key: 'createdAt',
-      header: 'Fecha',
-      render: (value: string) => new Date(value).toLocaleString()
-    },
+    { key: 'titulo', label: 'Título', className: 'font-medium' },
+    { key: 'remitenteNombre', label: 'Remitente' },
+    { key: 'createdAt', label: 'Fecha', render: (value: string) => new Date(value).toLocaleString() },
     {
       key: 'acciones',
-      header: 'Acciones',
+      label: 'Acciones',
       render: (_: any, item: Mensaje) => (
         <button
           onClick={() => openMensaje(item)}
