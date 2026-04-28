@@ -6,7 +6,16 @@ export async function listarVendedorasController(req: Request, res: Response) {
   try {
     const usuario = (req as any).usuario;
     let query = `
-      SELECT DISTINCT v.*, u.nombre as "creadaPorNombre"
+      SELECT DISTINCT 
+        v.*, 
+        u.nombre as "creadaPorNombre",
+        (
+          SELECT reputacion 
+          FROM "HistorialVendedora" h2 
+          WHERE h2."vendedoraId" = v.id 
+          ORDER BY h2."fechaReporte" DESC 
+          LIMIT 1
+        ) as reputacion
       FROM "Vendedora" v
       INNER JOIN "HistorialVendedora" h ON v.id = h."vendedoraId"
       LEFT JOIN "Usuario" u ON v."creadaPorId" = u.id
@@ -89,7 +98,7 @@ export async function crearVendedoraController(req: Request, res: Response) {
     const { nombre, cedula, reputacion, telefono, direccion, gerenteZonaId } = req.body;
     const usuario = (req as any).usuario;
 
-    // 🔧 CORRECCIÓN: Solo validar gerenteZonaId si el usuario es GERENTE_ZONA
+    // Solo validar gerenteZonaId si el usuario es GERENTE_ZONA
     if (usuario.rol === 'GERENTE_ZONA' && !usuario.gerenteZonaId) {
       console.error('Gerente sin gerenteZonaId:', usuario);
       return res.status(400).json({ error: 'Usuario gerente no tiene zona asignada' });
@@ -99,13 +108,10 @@ export async function crearVendedoraController(req: Request, res: Response) {
     let gerenteAsignadoId = null;
     
     if (usuario.rol === 'GERENTE_ZONA') {
-      // Gerente: usa su propia zona
       gerenteAsignadoId = usuario.gerenteZonaId;
     } else if (usuario.rol === 'ADMIN' && gerenteZonaId) {
-      // Admin: usa el gerente seleccionado
       gerenteAsignadoId = parseInt(gerenteZonaId);
     }
-    // Si es ADMIN y no seleccionó gerente, gerenteAsignadoId se queda null
 
     let vendedoraResult = await pool.query(
       `SELECT id FROM "Vendedora" WHERE cedula = $1`,
