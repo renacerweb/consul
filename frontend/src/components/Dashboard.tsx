@@ -16,7 +16,9 @@ interface Vendedora {
   nombre: string;
   cedula: string;
   reputacion: string;
-  gerenteZona: string;
+  gerenteZonaId?: number | null;
+  gerenteZona: string | null;
+  zona: string | null;
   createdAt: string;
 }
 
@@ -77,8 +79,27 @@ function Dashboard({ canEdit = false, canDelete = false, canCreate = false }: Da
         
         const gerentesList = usuariosRes.data.filter((u: any) => u.rol === 'GERENTE_ZONA');
         
-        setVendedoras(vendedorasRes.data);
-        setFilteredVendedoras(vendedorasRes.data);
+        // Crear mapa de gerentes por ID
+        const gerentesPorId: Record<number, any> = {};
+        usuariosRes.data.forEach((u: any) => {
+          if (u.rol === 'GERENTE_ZONA') {
+            gerentesPorId[u.id] = u;
+          }
+        });
+        
+        // Enriquecer vendedoras con gerente y zona (región)
+        const vendedorasConZona = vendedorasRes.data.map((v: any) => {
+          const gerente = v.gerenteZonaId ? gerentesPorId[v.gerenteZonaId] : null;
+          return {
+            ...v,
+            gerenteZona: gerente?.nombre || null,
+            zona: gerente?.region || null,
+            gerenteZonaId: v.gerenteZonaId || null,
+          };
+        });
+        
+        setVendedoras(vendedorasConZona);
+        setFilteredVendedoras(vendedorasConZona);
         setStats({
           totalVendedoras: vendedorasRes.data.length,
           totalGerentes: gerentesList.length,
@@ -144,12 +165,72 @@ function Dashboard({ canEdit = false, canDelete = false, canCreate = false }: Da
         gerenteZonaId: '',
       });
       
-      const response = await api.get('/vendedora');
-      setVendedoras(response.data);
-      setFilteredVendedoras(response.data);
+      // Recargar datos
+      const [vendedorasRes, usuariosRes] = await Promise.all([
+        api.get('/vendedora'),
+        api.get('/auth/usuarios'),
+      ]);
+      
+      const gerentesPorId: Record<number, any> = {};
+      usuariosRes.data.forEach((u: any) => {
+        if (u.rol === 'GERENTE_ZONA') {
+          gerentesPorId[u.id] = u;
+        }
+      });
+      
+      const vendedorasConZona = vendedorasRes.data.map((v: any) => {
+        const gerente = v.gerenteZonaId ? gerentesPorId[v.gerenteZonaId] : null;
+        return {
+          ...v,
+          gerenteZona: gerente?.nombre || null,
+          zona: gerente?.region || null,
+          gerenteZonaId: v.gerenteZonaId || null,
+        };
+      });
+      
+      setVendedoras(vendedorasConZona);
+      setFilteredVendedoras(vendedorasConZona);
       alert('✅ Vendedora registrada exitosamente');
     } catch (error: any) {
       alert('❌ Error al registrar vendedora: ' + (error.response?.data?.error || 'Error desconocido'));
+    }
+  };
+
+  const actualizarGerente = async (vendedoraId: number, gerenteId: string) => {
+    try {
+      await api.put(`/vendedora/${vendedoraId}`, { 
+        gerenteZonaId: gerenteId ? parseInt(gerenteId) : null 
+      });
+      
+      // Recargar datos
+      const [vendedorasRes, usuariosRes] = await Promise.all([
+        api.get('/vendedora'),
+        api.get('/auth/usuarios'),
+      ]);
+      
+      const gerentesPorId: Record<number, any> = {};
+      usuariosRes.data.forEach((u: any) => {
+        if (u.rol === 'GERENTE_ZONA') {
+          gerentesPorId[u.id] = u;
+        }
+      });
+      
+      const vendedorasConZona = vendedorasRes.data.map((v: any) => {
+        const gerente = v.gerenteZonaId ? gerentesPorId[v.gerenteZonaId] : null;
+        return {
+          ...v,
+          gerenteZona: gerente?.nombre || null,
+          zona: gerente?.region || null,
+          gerenteZonaId: v.gerenteZonaId || null,
+        };
+      });
+      
+      setVendedoras(vendedorasConZona);
+      setFilteredVendedoras(vendedorasConZona);
+      alert('✅ Gerente asignado correctamente');
+    } catch (error) {
+      console.error('Error:', error);
+      alert('❌ Error al asignar gerente');
     }
   };
 
@@ -177,6 +258,14 @@ function Dashboard({ canEdit = false, canDelete = false, canCreate = false }: Da
       case 'OBSERVADA': return <AlertCircle className="w-4 h-4" />;
       case 'RESTRINGIDA': return <Shield className="w-4 h-4" />;
       default: return <Users className="w-4 h-4" />;
+    }
+  };
+
+  const getColorZona = (zona: string | null) => {
+    switch (zona) {
+      case 'Portuguesa': return 'bg-green-100 text-green-700';
+      case 'Cojedes': return 'bg-blue-100 text-blue-700';
+      default: return 'bg-gray-100 text-gray-500';
     }
   };
 
@@ -311,6 +400,7 @@ function Dashboard({ canEdit = false, canDelete = false, canCreate = false }: Da
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Nombre</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Cédula</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Reputación</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Gerente Zona</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Zona</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Fecha</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Acciones</th>
@@ -327,7 +417,29 @@ function Dashboard({ canEdit = false, canDelete = false, canCreate = false }: Da
                       {getTextoReputacion(v.reputacion)}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-slate-600">{v.gerenteZona || 'Sin asignar'}</td>
+                  <td className="px-6 py-4">
+                    {usuario?.rol === 'ADMIN' ? (
+                      <select
+                        value={v.gerenteZonaId || ''}
+                        onChange={(e) => actualizarGerente(v.id, e.target.value)}
+                        className="px-2 py-1 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      >
+                        <option value="">Sin asignar</option>
+                        {gerentes.map((gerente) => (
+                          <option key={gerente.id} value={gerente.id}>
+                            {gerente.nombre} - {gerente.region}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <span className="text-slate-600">{v.gerenteZona || 'Sin asignar'}</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className={`px-2 py-1 rounded-lg text-xs font-medium ${getColorZona(v.zona)}`}>
+                      {v.zona || 'Sin asignar'}
+                    </span>
+                  </td>
                   <td className="px-6 py-4 text-slate-500 text-sm">
                     {new Date(v.createdAt).toLocaleDateString()}
                   </td>
@@ -352,7 +464,7 @@ function Dashboard({ canEdit = false, canDelete = false, canCreate = false }: Da
               ))}
               {filteredVendedoras.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
+                  <td colSpan={7} className="px-6 py-12 text-center text-slate-400">
                     <div className="flex flex-col items-center gap-2">
                       <Users className="w-12 h-12 text-slate-300" />
                       <p>No hay vendedoras registradas</p>
