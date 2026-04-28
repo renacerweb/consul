@@ -73,7 +73,7 @@ export async function listarRegionesController(req: Request, res: Response) {
 // =====================================================
 export async function listarGerentesZonaPorRegionController(req: Request, res: Response) {
   try {
-    const { regionId } = req.params;
+    const { regionId } = req.query;
     const usuarioAuth = (req as any).usuario;
 
     let query = `
@@ -84,7 +84,7 @@ export async function listarGerentesZonaPorRegionController(req: Request, res: R
     `;
     const params: any[] = [];
 
-    // Si hay regionId en los parámetros, filtrar por ella
+    // Si hay regionId en query, filtrar por ella
     if (regionId) {
       query += ` AND u."regionId" = $1`;
       params.push(regionId);
