@@ -84,10 +84,13 @@ export async function listarGerentesZonaPorRegionController(req: Request, res: R
     `;
     const params: any[] = [];
 
+    // Si hay regionId en los parámetros, filtrar por ella
     if (regionId) {
       query += ` AND u."regionId" = $1`;
       params.push(regionId);
-    } else if (usuarioAuth.rol === 'GERENTE_REGIONAL') {
+    } 
+    // Si es GERENTE_REGIONAL, filtrar por su región
+    else if (usuarioAuth.rol === 'GERENTE_REGIONAL') {
       query += ` AND u."regionId" = $1`;
       params.push(usuarioAuth.regionId);
     }
