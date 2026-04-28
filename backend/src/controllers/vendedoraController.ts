@@ -6,7 +6,7 @@ export async function listarVendedorasController(req: Request, res: Response) {
   try {
     const usuario = (req as any).usuario;
     let query = `
-      SELECT DISTINCT 
+      SELECT 
         v.*, 
         u.nombre as "creadaPorNombre",
         (
@@ -17,17 +17,16 @@ export async function listarVendedorasController(req: Request, res: Response) {
           LIMIT 1
         ) as reputacion
       FROM "Vendedora" v
-      INNER JOIN "HistorialVendedora" h ON v.id = h."vendedoraId"
       LEFT JOIN "Usuario" u ON v."creadaPorId" = u.id
     `;
     const params: any[] = [];
 
     if (usuario.rol === 'GERENTE_ZONA') {
-      query += ` WHERE h."gerenteZonaId" = $1`;
-      params.push(usuario.gerenteZonaId);
+      query += ` WHERE v."creadaPorId" = $1`;
+      params.push(usuario.id);
     }
 
-    query += ` GROUP BY v.id, u.nombre ORDER BY v.id DESC`;
+    query += ` ORDER BY v.id DESC`;
     const result = await pool.query(query, params);
     res.json(result.rows);
   } catch (error: any) {
@@ -98,21 +97,27 @@ export async function crearVendedoraController(req: Request, res: Response) {
     const { nombre, cedula, reputacion, telefono, direccion, gerenteZonaId } = req.body;
     const usuario = (req as any).usuario;
 
-    // Solo validar gerenteZonaId si el usuario es GERENTE_ZONA
-    if (usuario.rol === 'GERENTE_ZONA' && !usuario.gerenteZonaId) {
-      console.error('Gerente sin gerenteZonaId:', usuario);
-      return res.status(400).json({ error: 'Usuario gerente no tiene zona asignada' });
-    }
+    console.log('📥 Datos recibidos:', { nombre, cedula, reputacion, gerenteZonaId, usuarioRol: usuario.rol });
 
-    // Determinar qué gerenteZonaId usar
-    let gerenteAsignadoId = null;
+    // Determinar quién es el responsable (creadaPorId)
+    let creadaPorId = null;
     
     if (usuario.rol === 'GERENTE_ZONA') {
-      gerenteAsignadoId = usuario.gerenteZonaId;
+      if (!usuario.gerenteZonaId) {
+        console.error('Gerente sin gerenteZonaId:', usuario);
+        return res.status(400).json({ error: 'Usuario gerente no tiene zona asignada' });
+      }
+      creadaPorId = usuario.gerenteZonaId;
+      console.log('📌 Es GERENTE, creadaPorId =', creadaPorId);
     } else if (usuario.rol === 'ADMIN' && gerenteZonaId) {
-      gerenteAsignadoId = parseInt(gerenteZonaId);
+      creadaPorId = parseInt(gerenteZonaId);
+      console.log('📌 Es ADMIN con gerente seleccionado, creadaPorId =', creadaPorId);
+    } else {
+      creadaPorId = usuario.id;
+      console.log('📌 Por defecto, creadaPorId =', creadaPorId);
     }
 
+    // Buscar o crear vendedora
     let vendedoraResult = await pool.query(
       `SELECT id FROM "Vendedora" WHERE cedula = $1`,
       [cedula]
@@ -125,36 +130,38 @@ export async function crearVendedoraController(req: Request, res: Response) {
         `INSERT INTO "Vendedora" (nombre, cedula, telefono, direccion, "creadaPorId")
          VALUES ($1, $2, $3, $4, $5)
          RETURNING id`,
-        [nombre, cedula, telefono || null, direccion || null, usuario.id]
+        [nombre, cedula, telefono || null, direccion || null, creadaPorId]
       );
       vendedoraId = insertResult.rows[0].id;
+      console.log('✅ Vendedora creada, ID:', vendedoraId);
     } else {
       vendedoraId = vendedoraResult.rows[0].id;
+      console.log('📌 Vendedora existente, ID:', vendedoraId);
     }
 
-    // Verificar si ya existe un reporte idéntico en los últimos 10 segundos
+    // Verificar si ya existe un reporte reciente
     const existeReporte = await pool.query(
       `SELECT id FROM "HistorialVendedora" 
        WHERE "vendedoraId" = $1 AND "gerenteZonaId" = $2 AND reputacion = $3
        AND "fechaReporte" > NOW() - INTERVAL '10 seconds'`,
-      [vendedoraId, gerenteAsignadoId, reputacion]
+      [vendedoraId, creadaPorId, reputacion]
     );
 
     if (existeReporte.rows.length === 0) {
       await pool.query(
         `INSERT INTO "HistorialVendedora" ("vendedoraId", "gerenteZonaId", reputacion)
          VALUES ($1, $2, $3)`,
-        [vendedoraId, gerenteAsignadoId, reputacion]
+        [vendedoraId, creadaPorId, reputacion]
       );
-      console.log(`✅ Reporte creado: vendedora ${vendedoraId}, gerente ${gerenteAsignadoId}, reputacion ${reputacion}`);
+      console.log(`✅ Historial creado: vendedora ${vendedoraId}, gerente ${creadaPorId}, reputacion ${reputacion}`);
     } else {
-      console.log(`⚠️ Reporte duplicado evitado para vendedora ${vendedoraId}, gerente ${gerenteAsignadoId}`);
+      console.log(`⚠️ Reporte duplicado evitado para vendedora ${vendedoraId}`);
       return res.status(409).json({ mensaje: 'Ya has reportado esta vendedora recientemente con la misma reputación' });
     }
 
-    res.status(201).json({ mensaje: 'Vendedora reportada correctamente' });
+    res.status(201).json({ mensaje: 'Vendedora reportada correctamente', vendedoraId, creadaPorId });
   } catch (error: any) {
-    console.error('Error al reportar vendedora:', error);
+    console.error('❌ Error al reportar vendedora:', error);
     res.status(500).json({ error: error.message });
   }
 }
@@ -181,20 +188,20 @@ export async function actualizarVendedoraController(req: Request, res: Response)
         `SELECT id FROM "HistorialVendedora" 
          WHERE "vendedoraId" = $1 AND "gerenteZonaId" = $2 AND reputacion = $3
          AND "fechaReporte" > NOW() - INTERVAL '10 seconds'`,
-        [id, vendedora.gerenteZonaId, reputacion]
+        [id, vendedora.creadaPorId, reputacion]
       );
 
       if (existeReporte.rows.length === 0) {
         await pool.query(
           `INSERT INTO "HistorialVendedora" ("vendedoraId", "gerenteZonaId", reputacion)
            VALUES ($1, $2, $3)`,
-          [id, vendedora.gerenteZonaId, reputacion]
+          [id, vendedora.creadaPorId, reputacion]
         );
       }
       return res.json({ mensaje: 'Reporte actualizado' });
     }
 
-    if (vendedora.creadaPorId !== usuario.id) {
+    if (vendedora.creadaPorId !== usuario.id && vendedora.creadaPorId !== usuario.gerenteZonaId) {
       return res.status(403).json({ error: 'Solo puedes editar vendedoras que registraste tú' });
     }
     
@@ -209,14 +216,14 @@ export async function actualizarVendedoraController(req: Request, res: Response)
       `SELECT id FROM "HistorialVendedora" 
        WHERE "vendedoraId" = $1 AND "gerenteZonaId" = $2 AND reputacion = $3
        AND "fechaReporte" > NOW() - INTERVAL '10 seconds'`,
-      [id, usuario.gerenteZonaId, reputacion]
+      [id, vendedora.creadaPorId, reputacion]
     );
 
     if (existeReporte.rows.length === 0) {
       await pool.query(
         `INSERT INTO "HistorialVendedora" ("vendedoraId", "gerenteZonaId", reputacion)
          VALUES ($1, $2, $3)`,
-        [id, usuario.gerenteZonaId, reputacion]
+        [id, vendedora.creadaPorId, reputacion]
       );
     }
 
