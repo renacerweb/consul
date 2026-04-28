@@ -16,8 +16,8 @@ interface Vendedora {
   nombre: string;
   cedula: string;
   reputacion: string;
-  gerenteZonaId?: number | null;
-  gerenteZona: string | null;
+  creadaPorId?: number | null;
+  creadaPor: string | null;
   zona: string | null;
   createdAt: string;
 }
@@ -43,7 +43,7 @@ function Dashboard({ canEdit = false, canDelete = false, canCreate = false }: Da
     reputacion: 'OBSERVADA',
     telefono: '',
     direccion: '',
-    gerenteZonaId: '',
+    creadaPorId: '',
   });
   const [stats, setStats] = useState({
     totalVendedoras: 0,
@@ -60,7 +60,7 @@ function Dashboard({ canEdit = false, canDelete = false, canCreate = false }: Da
   useEffect(() => {
     const fetchGerentes = async () => {
       try {
-        const response = await api.get('/auth/usuarios?rol=GERENTE_ZONA');
+        const response = await api.get('/gerente-zona');
         setGerentes(response.data);
       } catch (error) {
         console.error('Error al cargar gerentes:', error);
@@ -72,29 +72,25 @@ function Dashboard({ canEdit = false, canDelete = false, canCreate = false }: Da
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [vendedorasRes, usuariosRes] = await Promise.all([
+        const [vendedorasRes, gerentesRes] = await Promise.all([
           api.get('/vendedora'),
-          api.get('/auth/usuarios'),
+          api.get('/gerente-zona'),
         ]);
-        
-        const gerentesList = usuariosRes.data.filter((u: any) => u.rol === 'GERENTE_ZONA');
         
         // Crear mapa de gerentes por ID
         const gerentesPorId: Record<number, any> = {};
-        usuariosRes.data.forEach((u: any) => {
-          if (u.rol === 'GERENTE_ZONA') {
-            gerentesPorId[u.id] = u;
-          }
+        gerentesRes.data.forEach((g: any) => {
+          gerentesPorId[g.id] = g;
         });
         
         // Enriquecer vendedoras con gerente y zona (región)
         const vendedorasConZona = vendedorasRes.data.map((v: any) => {
-          const gerente = v.gerenteZonaId ? gerentesPorId[v.gerenteZonaId] : null;
+          const gerente = v.creadaPorId ? gerentesPorId[v.creadaPorId] : null;
           return {
             ...v,
-            gerenteZona: gerente?.nombre || null,
+            creadaPor: gerente?.nombre || null,
             zona: gerente?.region || null,
-            gerenteZonaId: v.gerenteZonaId || null,
+            creadaPorId: v.creadaPorId || null,
           };
         });
         
@@ -102,7 +98,7 @@ function Dashboard({ canEdit = false, canDelete = false, canCreate = false }: Da
         setFilteredVendedoras(vendedorasConZona);
         setStats({
           totalVendedoras: vendedorasRes.data.length,
-          totalGerentes: gerentesList.length,
+          totalGerentes: gerentesRes.data.length,
           consultasMes: 1250,
           reportesRecientes: vendedorasRes.data.filter((v: any) => {
             const fecha = new Date(v.createdAt);
@@ -138,12 +134,12 @@ function Dashboard({ canEdit = false, canDelete = false, canCreate = false }: Da
     try {
       const user = JSON.parse(localStorage.getItem('usuario') || '{}');
       
-      let gerenteZonaId = null;
+      let creadaPorId = null;
       
       if (user.rol === 'GERENTE_ZONA') {
-        gerenteZonaId = user.gerenteZonaId;
-      } else if (user.rol === 'ADMIN' && formData.gerenteZonaId) {
-        gerenteZonaId = parseInt(formData.gerenteZonaId);
+        creadaPorId = user.id;
+      } else if (user.rol === 'ADMIN' && formData.creadaPorId) {
+        creadaPorId = parseInt(formData.creadaPorId);
       }
 
       await api.post('/vendedora', {
@@ -152,7 +148,7 @@ function Dashboard({ canEdit = false, canDelete = false, canCreate = false }: Da
         reputacion: formData.reputacion,
         telefono: formData.telefono,
         direccion: formData.direccion,
-        gerenteZonaId: gerenteZonaId,
+        creadaPorId: creadaPorId,
       });
       
       setShowModal(false);
@@ -162,29 +158,27 @@ function Dashboard({ canEdit = false, canDelete = false, canCreate = false }: Da
         reputacion: 'OBSERVADA', 
         telefono: '', 
         direccion: '',
-        gerenteZonaId: '',
+        creadaPorId: '',
       });
       
       // Recargar datos
-      const [vendedorasRes, usuariosRes] = await Promise.all([
+      const [vendedorasRes, gerentesRes] = await Promise.all([
         api.get('/vendedora'),
-        api.get('/auth/usuarios'),
+        api.get('/gerente-zona'),
       ]);
       
       const gerentesPorId: Record<number, any> = {};
-      usuariosRes.data.forEach((u: any) => {
-        if (u.rol === 'GERENTE_ZONA') {
-          gerentesPorId[u.id] = u;
-        }
+      gerentesRes.data.forEach((g: any) => {
+        gerentesPorId[g.id] = g;
       });
       
       const vendedorasConZona = vendedorasRes.data.map((v: any) => {
-        const gerente = v.gerenteZonaId ? gerentesPorId[v.gerenteZonaId] : null;
+        const gerente = v.creadaPorId ? gerentesPorId[v.creadaPorId] : null;
         return {
           ...v,
-          gerenteZona: gerente?.nombre || null,
+          creadaPor: gerente?.nombre || null,
           zona: gerente?.region || null,
-          gerenteZonaId: v.gerenteZonaId || null,
+          creadaPorId: v.creadaPorId || null,
         };
       });
       
@@ -349,7 +343,7 @@ function Dashboard({ canEdit = false, canDelete = false, canCreate = false }: Da
         )}
       </div>
 
-      {/* Vendedoras Table - Solo Lectura */}
+      {/* Vendedoras Table */}
       <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg overflow-hidden border border-white/50">
         <div className="px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
           <h3 className="text-lg font-semibold text-slate-800">Listado de Vendedoras</h3>
@@ -380,7 +374,7 @@ function Dashboard({ canEdit = false, canDelete = false, canCreate = false }: Da
                     </span>
                   </td>
                   <td className="px-6 py-4 text-slate-600">
-                    {v.gerenteZona || 'Sin asignar'}
+                    {v.creadaPor || 'Sin asignar'}
                   </td>
                   <td className="px-6 py-4">
                     <span className={`px-2 py-1 rounded-lg text-xs font-medium ${getColorZona(v.zona)}`}>
@@ -484,8 +478,8 @@ function Dashboard({ canEdit = false, canDelete = false, canCreate = false }: Da
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Asignar a Gerente (opcional)</label>
               <select
-                value={formData.gerenteZonaId}
-                onChange={(e) => setFormData({ ...formData, gerenteZonaId: e.target.value })}
+                value={formData.creadaPorId}
+                onChange={(e) => setFormData({ ...formData, creadaPorId: e.target.value })}
                 className="w-full px-3 py-2 border border-slate-200 rounded-lg"
               >
                 <option value="">Sin asignar</option>
