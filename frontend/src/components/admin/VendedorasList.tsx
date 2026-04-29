@@ -1,9 +1,8 @@
-// frontend/src/components/admin/VendedorasList.tsx
-import { useEffect, useState, useCallback } from 'react';
+﻿import { useEffect, useState, useCallback } from 'react';
 import api from '../../services/api';
 import DataTable from '../DataTable';
 import Modal from '../Modal';
-import { Search, Filter, Plus, Edit, Trash2 } from 'lucide-react';
+import { Search, Plus, Edit, Trash2 } from 'lucide-react';
 
 interface Vendedora {
   id: number;
@@ -92,29 +91,23 @@ function VendedorasList({ canEdit = true, canDelete = true, canCreate = true }: 
     fetchGerentesZona();
   }, [fetchVendedoras, fetchRegiones, fetchGerentesZona]);
 
-  // Aplicar filtros
   useEffect(() => {
     let filtered = [...vendedoras];
-
     if (busqueda) {
       filtered = filtered.filter(v =>
         v.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
         v.cedula.includes(busqueda)
       );
     }
-
     if (filtroRegion) {
       filtered = filtered.filter(v => v.region_nombre === filtroRegion);
     }
-
     if (filtroGerente) {
       filtered = filtered.filter(v => v.gerente_zona_nombre === filtroGerente);
     }
-
     setFilteredVendedoras(filtered);
   }, [vendedoras, busqueda, filtroRegion, filtroGerente]);
 
-  // Cargar gerentes cuando cambia la región seleccionada
   useEffect(() => {
     if (filtroRegion) {
       const region = regiones.find(r => r.nombre === filtroRegion);
@@ -211,7 +204,6 @@ function VendedorasList({ canEdit = true, canDelete = true, canCreate = true }: 
 
   return (
     <div>
-      {/* Filtros y búsqueda */}
       <div className="mb-6 flex flex-wrap gap-4 items-end">
         <div className="flex-1 min-w-[200px]">
           <label className="block text-sm font-medium text-slate-700 mb-1">Buscar</label>
@@ -247,7 +239,6 @@ function VendedorasList({ canEdit = true, canDelete = true, canCreate = true }: 
             value={filtroGerente}
             onChange={(e) => setFiltroGerente(e.target.value)}
             className="w-full px-3 py-2 border border-slate-200 rounded-lg"
-            disabled={!filtroRegion && gerentesZona.length === 0}
           >
             <option value="">Todos</option>
             {gerentesZona.map(g => (
@@ -267,7 +258,6 @@ function VendedorasList({ canEdit = true, canDelete = true, canCreate = true }: 
         )}
       </div>
 
-      {/* Tabla */}
       <DataTable
         columns={columns}
         data={filteredVendedoras}
@@ -275,7 +265,6 @@ function VendedorasList({ canEdit = true, canDelete = true, canCreate = true }: 
         emptyMessage="No hay vendedoras registradas"
       />
 
-      {/* Modal para crear vendedora */}
       <Modal isOpen={showModal} onClose={() => setShowModal(false)} title="Registrar Vendedora" size="md">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -337,7 +326,7 @@ function VendedorasList({ canEdit = true, canDelete = true, canCreate = true }: 
             <select
               value={formData.regionId}
               onChange={(e) => {
-                setFormData({ ...formData, regionId: e.target.value, gerenteZonaId: '' });
+                setFormData({ ...formData, regionId: e.target.value });
                 fetchGerentesZona(e.target.value);
               }}
               className="w-full px-3 py-2 border border-slate-200 rounded-lg"
@@ -349,21 +338,6 @@ function VendedorasList({ canEdit = true, canDelete = true, canCreate = true }: 
               ))}
             </select>
           </div>
-          {formData.regionId && gerentesZona.length > 0 && (
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Asignar a Gerente Zona (opcional)</label>
-              <select
-                value={formData.gerenteZonaId}
-                onChange={(e) => setFormData({ ...formData, gerenteZonaId: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-200 rounded-lg"
-              >
-                <option value="">Sin asignar</option>
-                {gerentesZona.map(g => (
-                  <option key={g.id} value={g.id}>{g.nombre}</option>
-                ))}
-              </select>
-            </div>
-          )}
           <div className="flex justify-end gap-3 pt-4">
             <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 border border-slate-200 rounded-lg">
               Cancelar

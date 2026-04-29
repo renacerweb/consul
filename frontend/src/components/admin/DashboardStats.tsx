@@ -1,5 +1,4 @@
-// frontend/src/components/admin/DashboardStats.tsx
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import api from '../../services/api';
 import { Users, UserPlus, TrendingUp, ShoppingBag, Shield, UsersRound } from 'lucide-react';
 
@@ -26,20 +25,15 @@ function DashboardStats() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        // Obtener estadísticas de vendedoras
         const vendedorasRes = await api.get('/vendedora');
         const vendedoras = vendedorasRes.data;
-
-        // Obtener usuarios por rol
         const usuariosRes = await api.get('/auth/usuarios');
         const usuarios = usuariosRes.data;
 
-        // Calcular estadísticas
         const gerentesRegionales = usuarios.filter((u: any) => u.rol === 'GERENTE_REGIONAL');
         const gerentesZona = usuarios.filter((u: any) => u.rol === 'GERENTE_ZONA');
         const auxiliares = usuarios.filter((u: any) => u.rol === 'AUXILIAR');
 
-        // Vendedoras por región
         const regionMap = new Map<string, number>();
         vendedoras.forEach((v: any) => {
           const region = v.region_nombre || 'Sin región';
@@ -47,7 +41,6 @@ function DashboardStats() {
         });
         const vendedorasPorRegion = Array.from(regionMap.entries()).map(([region, total]) => ({ region, total }));
 
-        // Reputación stats
         const reputacionMap = new Map<string, number>();
         vendedoras.forEach((v: any) => {
           const reputacion = v.reputacion || 'Sin reputación';
@@ -83,7 +76,6 @@ function DashboardStats() {
 
   return (
     <div>
-      {/* Tarjetas de estadísticas */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl shadow-lg p-5 text-white">
           <div className="flex justify-between items-start">
@@ -126,9 +118,7 @@ function DashboardStats() {
         </div>
       </div>
 
-      {/* Gráficos simples */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Vendedoras por región */}
         <div className="bg-white rounded-xl shadow-md p-5 border border-gray-100">
           <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
             <TrendingUp className="w-5 h-5 text-indigo-500" />
@@ -152,7 +142,6 @@ function DashboardStats() {
           </div>
         </div>
 
-        {/* Reputación */}
         <div className="bg-white rounded-xl shadow-md p-5 border border-gray-100">
           <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
             <Shield className="w-5 h-5 text-indigo-500" />
