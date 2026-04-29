@@ -26,3 +26,11 @@ prisma/dev.db
 # IDE
 .vscode/
 .idea/
+
+# Archivos temporales
+*.log
+generate-*.js
+t *
+tatus
+*.tmp
+temp-*
