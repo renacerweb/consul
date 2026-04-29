@@ -38,6 +38,19 @@ router.delete('/usuarios/:id', autenticar, permitirRoles('ADMIN'), eliminarUsuar
 router.get('/regiones', autenticar, permitirRoles('ADMIN', 'GERENTE_REGIONAL'), listarRegionesController);
 
 // =====================================================
+// REGIONES SIMPLE (alternativa directa - funciona siempre)
+// =====================================================
+router.get('/regiones-simple', autenticar, async (req, res) => {
+  try {
+    const result = await pool.query('SELECT id, nombre FROM "Region" ORDER BY id');
+    res.json(result.rows);
+  } catch (error: any) {
+    console.error('Error al obtener regiones:', error);
+    res.status(500).json({ error: 'Error al obtener regiones' });
+  }
+});
+
+// =====================================================
 // GERENTES ZONA (para selector)
 // =====================================================
 router.get('/gerentes-zona', autenticar, listarGerentesZonaPorRegionController);
@@ -63,6 +76,3 @@ router.get('/usuarios/:id/regiones', autenticar, async (req, res) => {
 });
 
 export default router;
-// Ruta de regiones activada - 04/29/2026 02:21:13
-
-// ===== RUTA ACTIVADA - 04/29/2026 02:48:26 =====
