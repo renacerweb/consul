@@ -23,13 +23,11 @@ export async function listarUsuariosController(req: Request, res: Response) {
     const params: any[] = [];
     const conditions: string[] = [];
 
-    // Filtrar por rol
     if (rol) {
       conditions.push(`u.rol = $${params.length + 1}`);
       params.push(rol);
     }
 
-    // Si es GERENTE_REGIONAL, solo ver usuarios de sus regiones
     if (usuarioAuth.rol === 'GERENTE_REGIONAL') {
       conditions.push(`u."creadoPorId" = $${params.length + 1}`);
       params.push(usuarioAuth.id);
@@ -50,7 +48,7 @@ export async function listarUsuariosController(req: Request, res: Response) {
 }
 
 // =====================================================
-// OBTENER REGIONES (para selects)
+// LISTAR REGIONES (para selects)
 // =====================================================
 export async function listarRegionesController(req: Request, res: Response) {
   try {
@@ -83,7 +81,6 @@ export async function listarGerentesZonaPorRegionController(req: Request, res: R
       params.push(regionId);
     } 
     else if (usuarioAuth.rol === 'GERENTE_REGIONAL') {
-      // Obtener las regiones del GERENTE_REGIONAL desde UsuarioRegion
       const regionesResult = await pool.query(
         `SELECT "regionId" FROM "UsuarioRegion" WHERE "usuarioId" = $1`,
         [usuarioAuth.id]
@@ -113,13 +110,11 @@ export async function registrarController(req: Request, res: Response) {
     const { email, nombre, password, rol, regionIds } = req.body;
     const usuarioAuth = (req as any).usuario;
 
-    // Verificar si el email ya existe
     const existe = await pool.query('SELECT id FROM "Usuario" WHERE email = $1', [email]);
     if (existe.rows.length > 0) {
       return res.status(400).json({ error: 'El email ya está registrado' });
     }
 
-    // === VALIDAR PERMISOS SEGÚN QUIEN CREA ===
     let finalRegionIds = regionIds || [];
 
     if (usuarioAuth.rol === 'ADMIN') {
@@ -139,11 +134,9 @@ export async function registrarController(req: Request, res: Response) {
       return res.status(403).json({ error: 'No tienes permiso para crear usuarios' });
     }
 
-    // Hashear contraseña
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
 
-    // Insertar usuario
     const result = await pool.query(
       `INSERT INTO "Usuario" (email, nombre, password, rol, "creadoPorId", activo)
        VALUES ($1, $2, $3, $4, $5, true)
@@ -153,7 +146,6 @@ export async function registrarController(req: Request, res: Response) {
 
     const usuarioId = result.rows[0].id;
 
-    // Insertar regiones asociadas (solo para GERENTE_REGIONAL)
     if (rol === 'GERENTE_REGIONAL' && finalRegionIds.length > 0) {
       for (const regionId of finalRegionIds) {
         await pool.query(
@@ -183,12 +175,10 @@ export async function editarUsuarioController(req: Request, res: Response) {
     const { email, nombre, rol, activo } = req.body;
     const usuarioAuth = (req as any).usuario;
 
-    // Verificar permisos
     if (usuarioAuth.rol === 'GERENTE_ZONA') {
       return res.status(403).json({ error: 'No tienes permiso para editar usuarios' });
     }
 
-    // Verificar si el email ya existe (excluyendo el usuario actual)
     const existe = await pool.query(
       'SELECT id FROM "Usuario" WHERE email = $1 AND id != $2',
       [email, id]
@@ -201,7 +191,6 @@ export async function editarUsuarioController(req: Request, res: Response) {
     const params: any[] = [email, nombre, rol];
     let paramIndex = 4;
 
-    // Actualizar activo (solo ADMIN)
     if (usuarioAuth.rol === 'ADMIN' && activo !== undefined) {
       query += `, activo = $${paramIndex++}`;
       params.push(activo);
@@ -231,17 +220,14 @@ export async function eliminarUsuarioController(req: Request, res: Response) {
     const id = parseInt(req.params.id as string);
     const usuarioAuth = (req as any).usuario;
 
-    // Solo ADMIN puede eliminar usuarios
     if (usuarioAuth.rol !== 'ADMIN') {
       return res.status(403).json({ error: 'No tienes permiso para eliminar usuarios' });
     }
 
-    // No permitir eliminar a sí mismo
     if (id === usuarioAuth.id) {
       return res.status(400).json({ error: 'No puedes eliminar tu propio usuario' });
     }
 
-    // Eliminar primero las relaciones en UsuarioRegion
     await pool.query('DELETE FROM "UsuarioRegion" WHERE "usuarioId" = $1', [id]);
 
     const result = await pool.query(
