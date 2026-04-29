@@ -10,6 +10,7 @@ import {
   listarGerentesZonaPorRegionController
 } from '../controllers/usuarioController';
 import { autenticar, permitirRoles } from '../middleware/auth';
+import pool from '../db';
 
 const router = Router();
 
@@ -38,8 +39,27 @@ router.get('/regiones', autenticar, permitirRoles('ADMIN', 'GERENTE_REGIONAL'), 
 
 // =====================================================
 // GERENTES ZONA (para selector)
-// ✅ CORREGIDO: Sin parámetro opcional
 // =====================================================
 router.get('/gerentes-zona', autenticar, listarGerentesZonaPorRegionController);
+
+// =====================================================
+// REGIONES POR USUARIO (para GERENTE_REGIONAL)
+// =====================================================
+router.get('/usuarios/:id/regiones', autenticar, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(
+      `SELECT r.id, r.nombre
+       FROM "Region" r
+       JOIN "UsuarioRegion" ur ON r.id = ur."regionId"
+       WHERE ur."usuarioId" = $1`,
+      [id]
+    );
+    res.json(result.rows);
+  } catch (error: any) {
+    console.error('Error al obtener regiones del usuario:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
 
 export default router;

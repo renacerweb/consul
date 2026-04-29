@@ -1,0 +1,25 @@
+[33mcommit 687ec61c1d130a688df9c5aea1dc8d766743423d[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m
+Author: Joebgs <joebgprogramacion@gmail.com>
+Date:   Tue Apr 28 17:06:34 2026 -0400
+
+    feat: actualizar base de datos y backend para nueva jerarquía de roles
+    
+    - Eliminar tabla GerenteZona, unificar en Usuario
+    - Agregar roles: ADMIN, GERENTE_REGIONAL, GERENTE_ZONA, AUXILIAR
+    - Agregar campos: regionId, creadoPorId en Usuario
+    - Agregar campo gerenteZonaId en Vendedora
+    - Actualizar controladores con nuevos permisos
+    - Corregir tipos y errores de TypeScript
+    - Actualizar authService y jwt con nuevos campos
+
+backend/src/controllers/authController.ts
+backend/src/controllers/usuarioController.ts
+backend/src/controllers/vendedoraController.ts
+backend/src/middleware/auth.ts
+backend/src/routes/authRoutes.ts
+backend/src/routes/vendedoraRoutes.ts
+backend/src/services/authService.ts
+backend/src/types/index.ts
+backend/src/utils/jwt.ts
+frontend/src/components/MensajesGerente.tsx
+frontend/src/components/SeguridadAdmin.tsx

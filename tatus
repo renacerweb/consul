@@ -1,0 +1,16 @@
+[33mcommit 5f3ca596b60d01f43be090bd3147679061b50bad[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m
+Author: Joebgs <joebgprogramacion@gmail.com>
+Date:   Wed Apr 29 00:08:45 2026 -0400
+
+    feat: separar Inicio y Vendedoras para ADMIN
+    
+    - Nuevo componente DashboardStats para estadísticas en /admin
+    - Nuevo componente VendedorasList para listado con filtros en /admin/vendedoras
+    - Modificar Dashboard.tsx para usar DashboardStats
+    - Modificar Vendedoras.tsx para usar VendedorasList
+    - Agregar filtros por región y gerente zona
+
+frontend/src/components/admin/DashboardStats.tsx
+frontend/src/components/admin/VendedorasList.tsx
+frontend/src/pages/admin/Dashboard.tsx
+frontend/src/pages/admin/Vendedoras.tsx

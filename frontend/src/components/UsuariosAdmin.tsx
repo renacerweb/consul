@@ -9,9 +9,14 @@ interface Usuario {
   email: string;
   nombre: string;
   rol: string;
-  region?: string;
+  regiones?: string;
   activo: boolean;
   createdAt: string;
+}
+
+interface Region {
+  id: number;
+  nombre: string;
 }
 
 function UsuariosAdmin() {
@@ -21,19 +26,18 @@ function UsuariosAdmin() {
   const [showModal, setShowModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editUsuario, setEditUsuario] = useState<Usuario | null>(null);
-  const [regiones, setRegiones] = useState<{ id: number; nombre: string }[]>([]);
+  const [regiones, setRegiones] = useState<Region[]>([]);
   const [formData, setFormData] = useState({
     email: '',
     nombre: '',
     password: '',
     rol: 'GERENTE_REGIONAL',
-    regionId: '',
+    regionIds: [] as string[],
   });
   const [editFormData, setEditFormData] = useState({
     email: '',
     nombre: '',
     rol: '',
-    regionId: '',
   });
 
   const fetchUsuarios = async () => {
@@ -72,32 +76,14 @@ function UsuariosAdmin() {
         nombre: formData.nombre,
         password: formData.password,
         rol: formData.rol,
-        regionId: formData.regionId || null,
+        regionIds: formData.rol === 'GERENTE_REGIONAL' ? formData.regionIds : [],
       });
       setShowModal(false);
-      setFormData({ email: '', nombre: '', password: '', rol: 'GERENTE_REGIONAL', regionId: '' });
+      setFormData({ email: '', nombre: '', password: '', rol: 'GERENTE_REGIONAL', regionIds: [] });
       fetchUsuarios();
       alert('✅ Usuario creado exitosamente');
     } catch (error: any) {
       alert('❌ Error al crear usuario: ' + (error.response?.data?.error || 'Error desconocido'));
-    }
-  };
-
-  const handleSaveEdit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editUsuario) return;
-    try {
-      await api.put(`/auth/usuarios/${editUsuario.id}`, {
-        email: editFormData.email,
-        nombre: editFormData.nombre,
-        rol: editFormData.rol,
-        regionId: editFormData.regionId || null,
-      });
-      setShowEditModal(false);
-      fetchUsuarios();
-      alert('✅ Usuario actualizado correctamente');
-    } catch (error: any) {
-      alert('❌ Error al actualizar usuario: ' + (error.response?.data?.error || 'Error desconocido'));
     }
   };
 
@@ -130,8 +116,8 @@ function UsuariosAdmin() {
       }
     },
     {
-      key: 'region',
-      label: 'Región',
+      key: 'regiones',
+      label: 'Regiones',
       render: (value: string) => value || '-'
     },
     {
@@ -146,7 +132,6 @@ function UsuariosAdmin() {
                 email: row.email,
                 nombre: row.nombre,
                 rol: row.rol,
-                regionId: row.region?.toString() || '',
               });
               setShowEditModal(true);
             }}
@@ -243,7 +228,7 @@ function UsuariosAdmin() {
             <label className="block text-sm font-medium text-slate-700 mb-1">Rol</label>
             <select
               value={formData.rol}
-              onChange={(e) => setFormData({ ...formData, rol: e.target.value })}
+              onChange={(e) => setFormData({ ...formData, rol: e.target.value, regionIds: [] })}
               className="w-full px-3 py-2 border border-slate-200 rounded-lg"
             >
               <option value="GERENTE_REGIONAL">Gerente Regional</option>
@@ -251,22 +236,32 @@ function UsuariosAdmin() {
               <option value="AUXILIAR">Auxiliar</option>
             </select>
           </div>
-          {(formData.rol === 'GERENTE_REGIONAL' || formData.rol === 'GERENTE_ZONA') && (
+
+          {/* Selector múltiple de regiones (solo para GERENTE_REGIONAL) */}
+          {formData.rol === 'GERENTE_REGIONAL' && (
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Región</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Regiones (puede seleccionar múltiples)
+              </label>
               <select
-                value={formData.regionId}
-                onChange={(e) => setFormData({ ...formData, regionId: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-200 rounded-lg"
-                required
+                multiple
+                value={formData.regionIds}
+                onChange={(e) => {
+                  const values = Array.from(e.target.selectedOptions, option => option.value);
+                  setFormData({ ...formData, regionIds: values });
+                }}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg h-28"
               >
-                <option value="">Seleccionar región</option>
                 {regiones.map(r => (
                   <option key={r.id} value={r.id}>{r.nombre}</option>
                 ))}
               </select>
+              <p className="text-xs text-slate-400 mt-1">
+                Mantén presionada la tecla Ctrl (Windows) o Cmd (Mac) para seleccionar múltiples regiones
+              </p>
             </div>
           )}
+
           <div className="flex justify-end gap-3 pt-4">
             <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 border border-slate-200 rounded-lg">
               Cancelar
@@ -280,7 +275,7 @@ function UsuariosAdmin() {
 
       {/* Modal para editar usuario */}
       <Modal isOpen={showEditModal} onClose={() => setShowEditModal(false)} title="Editar Usuario" size="md">
-        <form onSubmit={handleSaveEdit} className="space-y-4">
+        <form onSubmit={(e) => { e.preventDefault(); alert('Función de edición pendiente'); }} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Nombre</label>
             <input
@@ -313,21 +308,6 @@ function UsuariosAdmin() {
               <option value="AUXILIAR">Auxiliar</option>
             </select>
           </div>
-          {(editFormData.rol === 'GERENTE_REGIONAL' || editFormData.rol === 'GERENTE_ZONA') && (
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Región</label>
-              <select
-                value={editFormData.regionId}
-                onChange={(e) => setEditFormData({ ...editFormData, regionId: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-200 rounded-lg"
-              >
-                <option value="">Seleccionar región</option>
-                {regiones.map(r => (
-                  <option key={r.id} value={r.id}>{r.nombre}</option>
-                ))}
-              </select>
-            </div>
-          )}
           <div className="flex justify-end gap-3 pt-4">
             <button type="button" onClick={() => setShowEditModal(false)} className="px-4 py-2 border border-slate-200 rounded-lg">
               Cancelar
