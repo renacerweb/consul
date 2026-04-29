@@ -93,3 +93,4 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`📋 Vendedora: http://localhost:${PORT}/api/vendedora/buscar/12345678`)
   console.log(`🔒 Modo: ${process.env.NODE_ENV || 'development'}`)
 })
+// Forzar redeploy
