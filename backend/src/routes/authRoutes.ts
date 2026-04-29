@@ -63,3 +63,4 @@ router.get('/usuarios/:id/regiones', autenticar, async (req, res) => {
 });
 
 export default router;
+// Ruta de regiones activada - 04/29/2026 02:21:13
