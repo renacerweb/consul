@@ -27,6 +27,9 @@ dotenv.config()
 const app = express()
 const PORT: number = parseInt(process.env.PORT || '3000', 10)
 
+// ==================== CONFIGURAR TRUST PROXY (para Railway) ====================
+app.set('trust proxy', 1);
+
 // ==================== MIDDLEWARES DE SEGURIDAD ====================
 
 // Helmet - Protección de headers HTTP
@@ -93,4 +96,3 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`📋 Vendedora: http://localhost:${PORT}/api/vendedora/buscar/12345678`)
   console.log(`🔒 Modo: ${process.env.NODE_ENV || 'development'}`)
 })
-// Forzar redeploy
