@@ -1,16 +1,10 @@
 ﻿import LayoutAdmin from '../../components/LayoutAdmin';
-import Dashboard from '../../components/Dashboard';
+import DashboardStats from '../../components/admin/DashboardStats';
 
 function AdminDashboard() {
   return (
     <LayoutAdmin title="Dashboard Administrador">
-      <Dashboard
-        rol="ADMIN"
-        title="Dashboard Administrador"
-        canEdit={true}
-        canDelete={true}
-        canCreate={true}
-      />
+      <DashboardStats />
     </LayoutAdmin>
   );
 }

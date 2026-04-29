@@ -1,12 +1,10 @@
 ﻿import LayoutAdmin from '../../components/LayoutAdmin';
-import Dashboard from '../../components/Dashboard';
+import VendedorasList from '../../components/admin/VendedorasList';
 
 function AdminVendedoras() {
   return (
     <LayoutAdmin title="Gestión de Vendedoras">
-      <Dashboard
-        rol="ADMIN"
-        title="Gestión de Vendedoras"
+      <VendedorasList
         canEdit={true}
         canDelete={true}
         canCreate={true}
