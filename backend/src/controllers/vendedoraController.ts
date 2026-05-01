@@ -3,9 +3,6 @@ import { Request, Response } from 'express';
 import pool from '../db';
 import { registrarConsultaAuditoria } from '../middleware/security';
 
-// =====================================================
-// LISTAR VENDEDORAS (con filtros según rol)
-// =====================================================
 export async function listarVendedorasController(req: Request, res: Response) {
   try {
     const usuario = (req as any).usuario;
@@ -24,21 +21,13 @@ export async function listarVendedorasController(req: Request, res: Response) {
     const params: any[] = [];
     const conditions: string[] = [];
 
-    // ADMIN: ve todo
-    // GERENTE_REGIONAL: solo vendedoras de su región
     if (usuario.rol === 'GERENTE_REGIONAL') {
       conditions.push(`v."regionId" = $${params.length + 1}`);
       params.push(usuario.regionId);
     }
-    // GERENTE_ZONA: solo vendedoras que él creó
     else if (usuario.rol === 'GERENTE_ZONA') {
       conditions.push(`v."creadaPorId" = $${params.length + 1}`);
       params.push(usuario.id);
-    }
-    // AUXILIAR: ve todas las vendedoras de su región (si tiene)
-    else if (usuario.rol === 'AUXILIAR' && usuario.regionId) {
-      conditions.push(`v."regionId" = $${params.length + 1}`);
-      params.push(usuario.regionId);
     }
 
     if (conditions.length > 0) {
@@ -55,9 +44,6 @@ export async function listarVendedorasController(req: Request, res: Response) {
   }
 }
 
-// =====================================================
-// BUSCAR VENDEDORA POR CÉDULA (público)
-// =====================================================
 export async function buscarVendedoraController(req: Request, res: Response) {
   const ip = req.ip || req.socket.remoteAddress || 'unknown';
   const cedula = req.params.cedula as string;
@@ -88,13 +74,7 @@ export async function buscarVendedoraController(req: Request, res: Response) {
       historial = historialResult.rows;
     }
 
-    await registrarConsultaAuditoria(
-      cedula,
-      usuario?.id || null,
-      ip,
-      req.headers['user-agent'] as string | undefined,
-      exitosa
-    );
+    await registrarConsultaAuditoria(cedula, usuario?.id || null, ip, req.headers['user-agent'] as string | undefined, exitosa);
 
     if (!exitosa) {
       return res.status(404).json({ mensaje: 'Vendedora no encontrada' });
@@ -109,32 +89,21 @@ export async function buscarVendedoraController(req: Request, res: Response) {
       }))
     });
   } catch (error: any) {
-    await registrarConsultaAuditoria(
-      cedula, 
-      usuario?.id || null, 
-      ip, 
-      req.headers['user-agent'] as string | undefined, 
-      false
-    );
+    await registrarConsultaAuditoria(cedula, usuario?.id || null, ip, req.headers['user-agent'] as string | undefined, false);
     res.status(500).json({ error: error.message });
   }
 }
 
-// =====================================================
-// CREAR VENDEDORA
-// =====================================================
 export async function crearVendedoraController(req: Request, res: Response) {
   try {
     const { nombre, cedula, reputacion, telefono, direccion, gerenteZonaId } = req.body;
     const usuario = (req as any).usuario;
 
-    // Verificar que la cédula no exista
     const existeVendedora = await pool.query('SELECT id FROM "Vendedora" WHERE cedula = $1', [cedula]);
     if (existeVendedora.rows.length > 0) {
       return res.status(400).json({ error: 'Ya existe una vendedora con esta cédula' });
     }
 
-    // Determinar región
     let regionId = null;
     let creadaPorId = usuario.id;
     let finalGerenteZonaId = gerenteZonaId || null;
@@ -151,9 +120,6 @@ export async function crearVendedoraController(req: Request, res: Response) {
         return res.status(400).json({ error: 'Debes seleccionar una región' });
       }
       regionId = req.body.regionId;
-    }
-    else if (usuario.rol === 'AUXILIAR') {
-      regionId = usuario.regionId;
     }
 
     if (!regionId) {
@@ -180,9 +146,6 @@ export async function crearVendedoraController(req: Request, res: Response) {
   }
 }
 
-// =====================================================
-// ACTUALIZAR VENDEDORA (editar reputación)
-// =====================================================
 export async function actualizarVendedoraController(req: Request, res: Response) {
   try {
     const id = parseInt(req.params.id as string);
@@ -197,27 +160,15 @@ export async function actualizarVendedoraController(req: Request, res: Response)
     const vendedora = vendedoraResult.rows[0];
 
     let puedeEditar = false;
-
     if (usuario.rol === 'ADMIN') puedeEditar = true;
-    else if (usuario.rol === 'GERENTE_REGIONAL') {
-      puedeEditar = vendedora.regionId === usuario.regionId;
-    }
-    else if (usuario.rol === 'GERENTE_ZONA') {
-      puedeEditar = vendedora.creadaPorId === usuario.id;
-    }
-    else if (usuario.rol === 'AUXILIAR') {
-      puedeEditar = true;
-    }
+    else if (usuario.rol === 'GERENTE_REGIONAL') puedeEditar = vendedora.regionId === usuario.regionId;
+    else if (usuario.rol === 'GERENTE_ZONA') puedeEditar = vendedora.creadaPorId === usuario.id;
 
     if (!puedeEditar) {
       return res.status(403).json({ error: 'No tienes permiso para editar esta vendedora' });
     }
 
-    await pool.query(
-      `UPDATE "Vendedora" SET reputacion = $1 WHERE id = $2`,
-      [reputacion, id]
-    );
-
+    await pool.query(`UPDATE "Vendedora" SET reputacion = $1 WHERE id = $2`, [reputacion, id]);
     await pool.query(
       `INSERT INTO "HistorialVendedora" ("vendedoraId", "gerenteZonaId", reputacion)
        VALUES ($1, $2, $3)`,
@@ -231,9 +182,6 @@ export async function actualizarVendedoraController(req: Request, res: Response)
   }
 }
 
-// =====================================================
-// ELIMINAR VENDEDORA
-// =====================================================
 export async function eliminarVendedoraController(req: Request, res: Response) {
   try {
     const id = parseInt(req.params.id as string);
@@ -247,19 +195,14 @@ export async function eliminarVendedoraController(req: Request, res: Response) {
     const vendedora = vendedoraResult.rows[0];
 
     let puedeEliminar = false;
-
-    if (usuario.rol === 'ADMIN') {
-      puedeEliminar = true;
-    } else if (usuario.rol === 'GERENTE_REGIONAL') {
-      puedeEliminar = vendedora.regionId === usuario.regionId;
-    }
+    if (usuario.rol === 'ADMIN') puedeEliminar = true;
+    else if (usuario.rol === 'GERENTE_REGIONAL') puedeEliminar = vendedora.regionId === usuario.regionId;
 
     if (!puedeEliminar) {
       return res.status(403).json({ error: 'No tienes permiso para eliminar esta vendedora' });
     }
 
     await pool.query('DELETE FROM "Vendedora" WHERE id = $1', [id]);
-
     res.json({ mensaje: 'Vendedora eliminada correctamente' });
   } catch (error: any) {
     console.error('Error al eliminar vendedora:', error);

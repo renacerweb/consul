@@ -10,7 +10,6 @@ import {
   listarGerentesZonaPorRegionController
 } from '../controllers/usuarioController';
 import { autenticar, permitirRoles } from '../middleware/auth';
-import pool from '../db';
 
 const router = Router();
 
@@ -35,44 +34,11 @@ router.delete('/usuarios/:id', autenticar, permitirRoles('ADMIN'), eliminarUsuar
 // =====================================================
 // REGIONES (para selects)
 // =====================================================
-router.get('/regiones', autenticar, permitirRoles('ADMIN', 'GERENTE_REGIONAL'), listarRegionesController);
-
-// =====================================================
-// REGIONES SIMPLE (alternativa directa - funciona siempre)
-// =====================================================
-router.get('/regiones-simple', autenticar, async (req, res) => {
-  try {
-    const result = await pool.query('SELECT id, nombre FROM "Region" ORDER BY id');
-    res.json(result.rows);
-  } catch (error: any) {
-    console.error('Error al obtener regiones:', error);
-    res.status(500).json({ error: 'Error al obtener regiones' });
-  }
-});
+router.get('/regiones', autenticar, permitirRoles('ADMIN'), listarRegionesController);
 
 // =====================================================
 // GERENTES ZONA (para selector)
 // =====================================================
 router.get('/gerentes-zona', autenticar, listarGerentesZonaPorRegionController);
-
-// =====================================================
-// REGIONES POR USUARIO (para GERENTE_REGIONAL)
-// =====================================================
-router.get('/usuarios/:id/regiones', autenticar, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const result = await pool.query(
-      `SELECT r.id, r.nombre
-       FROM "Region" r
-       JOIN "UsuarioRegion" ur ON r.id = ur."regionId"
-       WHERE ur."usuarioId" = $1`,
-      [id]
-    );
-    res.json(result.rows);
-  } catch (error: any) {
-    console.error('Error al obtener regiones del usuario:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
 
 export default router;

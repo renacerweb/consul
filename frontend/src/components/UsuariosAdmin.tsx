@@ -9,7 +9,7 @@ interface Usuario {
   email: string;
   nombre: string;
   rol: string;
-  regiones?: string;
+  region?: string;
   activo: boolean;
   createdAt: string;
 }
@@ -32,7 +32,7 @@ function UsuariosAdmin() {
     nombre: '',
     password: '',
     rol: 'GERENTE_REGIONAL',
-    regionIds: [] as string[],
+    regionId: '',
   });
   const [editFormData, setEditFormData] = useState({
     email: '',
@@ -76,10 +76,10 @@ function UsuariosAdmin() {
         nombre: formData.nombre,
         password: formData.password,
         rol: formData.rol,
-        regionIds: formData.rol === 'GERENTE_REGIONAL' ? formData.regionIds : [],
+        regionId: formData.rol === 'GERENTE_REGIONAL' ? formData.regionId : null,
       });
       setShowModal(false);
-      setFormData({ email: '', nombre: '', password: '', rol: 'GERENTE_REGIONAL', regionIds: [] });
+      setFormData({ email: '', nombre: '', password: '', rol: 'GERENTE_REGIONAL', regionId: '' });
       fetchUsuarios();
       alert('✅ Usuario creado exitosamente');
     } catch (error: any) {
@@ -116,8 +116,8 @@ function UsuariosAdmin() {
       }
     },
     {
-      key: 'regiones',
-      label: 'Regiones',
+      key: 'region',
+      label: 'Región',
       render: (value: string) => value || '-'
     },
     {
@@ -228,7 +228,7 @@ function UsuariosAdmin() {
             <label className="block text-sm font-medium text-slate-700 mb-1">Rol</label>
             <select
               value={formData.rol}
-              onChange={(e) => setFormData({ ...formData, rol: e.target.value, regionIds: [] })}
+              onChange={(e) => setFormData({ ...formData, rol: e.target.value, regionId: '' })}
               className="w-full px-3 py-2 border border-slate-200 rounded-lg"
             >
               <option value="GERENTE_REGIONAL">Gerente Regional</option>
@@ -237,28 +237,21 @@ function UsuariosAdmin() {
             </select>
           </div>
 
-          {/* Selector múltiple de regiones (solo para GERENTE_REGIONAL) */}
+          {/* Selector de región (solo para GERENTE_REGIONAL) */}
           {formData.rol === 'GERENTE_REGIONAL' && (
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Regiones (puede seleccionar múltiples)
-              </label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Región</label>
               <select
-                multiple
-                value={formData.regionIds}
-                onChange={(e) => {
-                  const values = Array.from(e.target.selectedOptions, option => option.value);
-                  setFormData({ ...formData, regionIds: values });
-                }}
-                className="w-full px-3 py-2 border border-slate-200 rounded-lg h-28"
+                value={formData.regionId}
+                onChange={(e) => setFormData({ ...formData, regionId: e.target.value })}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg"
+                required
               >
+                <option value="">Seleccionar región</option>
                 {regiones.map(r => (
                   <option key={r.id} value={r.id}>{r.nombre}</option>
                 ))}
               </select>
-              <p className="text-xs text-slate-400 mt-1">
-                Mantén presionada la tecla Ctrl (Windows) o Cmd (Mac) para seleccionar múltiples regiones
-              </p>
             </div>
           )}
 
