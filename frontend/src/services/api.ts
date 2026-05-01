@@ -1,25 +1,27 @@
 ﻿/**
  * SERVICIO DE API (AXIOS)
  * Configuración central de todas las llamadas al backend
+ * Backend alojado en Render
  */
 
 import axios from 'axios';
 
-// URL del backend en Railway (PRODUCCIÓN)
-// Si estás en desarrollo local, usa el proxy de Vite (localhost:3000)
-const API_URL = process.env.NODE_ENV === 'production'
-  ? 'https://sistema-renacer-production.up.railway.app/api'
-  : '/api';
+// URL del backend en Render (fija, sin import.meta.env)
+const API_URL = 'https://sistema-renacer-api.onrender.com/api';
 
-// Crear instancia de axios
+// Crear instancia de axios con configuración base
 const api = axios.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: false,
 });
 
-// Interceptor para agregar token a cada petición
+/**
+ * INTERCEPTOR DE PETICIONES (REQUEST)
+ * Agrega automáticamente el token JWT a los headers
+ */
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) {
@@ -28,7 +30,10 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Interceptor para manejar errores 401 (token expirado)
+/**
+ * INTERCEPTOR DE RESPUESTAS (RESPONSE)
+ * Maneja errores 401 (token expirado)
+ */
 api.interceptors.response.use(
   (response) => response,
   (error) => {
