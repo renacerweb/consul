@@ -27,8 +27,7 @@ dotenv.config()
 const app = express()
 const PORT: number = parseInt(process.env.PORT || '3000', 10)
 
-// ==================== CONFIGURAR TRUST PROXY (para Railway) ====================
-app.set('trust proxy', 1);
+
 
 // ==================== MIDDLEWARES DE SEGURIDAD ====================
 
