@@ -5,18 +5,17 @@
       "maxDuration": 10
     }
   },
-  "rewrites": [
+  "routes": [
     {
-      "source": "/api/(.*)",
-      "destination": "/api/index"
+      "src": "/api/(.*)",
+      "dest": "/api/index"
     },
     {
-      "source": "/(.*)",
-      "destination": "/frontend/index.html"
+      "src": "/(.*)",
+      "dest": "/frontend/index.html"
     }
   ],
   "buildCommand": "cd frontend && npm install && npm run build",
   "outputDirectory": "frontend/dist",
-  "installCommand": "npm install",
-  "devCommand": "cd frontend && npm run dev"
+  "installCommand": "npm install"
 }
