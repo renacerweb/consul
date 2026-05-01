@@ -9,7 +9,6 @@ function AuxiliarDashboard() {
         title="Dashboard Auxiliar"
         canEdit={false}
         canDelete={false}
-        canCreate={true}
       />
     </LayoutAuxiliar>
   );

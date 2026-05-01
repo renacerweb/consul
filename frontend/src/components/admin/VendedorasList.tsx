@@ -326,7 +326,7 @@ function VendedorasList({ canEdit = true, canDelete = true, canCreate = true }: 
             <select
               value={formData.regionId}
               onChange={(e) => {
-                setFormData({ ...formData, regionId: e.target.value });
+                setFormData({ ...formData, regionId: e.target.value, gerenteZonaId: '' });
                 fetchGerentesZona(e.target.value);
               }}
               className="w-full px-3 py-2 border border-slate-200 rounded-lg"
@@ -338,6 +338,21 @@ function VendedorasList({ canEdit = true, canDelete = true, canCreate = true }: 
               ))}
             </select>
           </div>
+          {formData.regionId && gerentesZona.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Asignar a Gerente Zona (opcional)</label>
+              <select
+                value={formData.gerenteZonaId}
+                onChange={(e) => setFormData({ ...formData, gerenteZonaId: e.target.value })}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg"
+              >
+                <option value="">Sin asignar</option>
+                {gerentesZona.map(g => (
+                  <option key={g.id} value={g.id}>{g.nombre}</option>
+                ))}
+              </select>
+            </div>
+          )}
           <div className="flex justify-end gap-3 pt-4">
             <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 border border-slate-200 rounded-lg">
               Cancelar

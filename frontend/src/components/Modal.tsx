@@ -54,7 +54,6 @@ function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalProps) {
           max-h-[90vh] overflow-y-auto border border-white/50 animate-scaleIn
         `}
       >
-        {/* Header con gradiente */}
         <div className="flex justify-between items-center px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white rounded-t-2xl">
           <h2 id="modal-title" className="text-lg font-semibold text-slate-800">
             {title}
@@ -70,13 +69,11 @@ function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalProps) {
           </button>
         </div>
 
-        {/* Contenido */}
         <div className="p-6">
           {children}
         </div>
       </div>
 
-      {/* Animaciones */}
       <style>{`
         @keyframes fadeIn {
           from { opacity: 0; }

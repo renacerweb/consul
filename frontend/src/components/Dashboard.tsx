@@ -1,14 +1,13 @@
 import { useEffect, useState } from 'react';
 import api from '../services/api';
 import Modal from './Modal';
-import { Users, UserPlus, TrendingUp, ShoppingBag, Search, Eye, Edit, Trash2, MoreHorizontal, Shield, AlertCircle, CheckCircle } from 'lucide-react';
+import { Users, TrendingUp, ShoppingBag, Search, Edit, Trash2, AlertCircle } from 'lucide-react';
 
 interface DashboardProps {
   rol: string;
   title: string;
   canEdit?: boolean;
   canDelete?: boolean;
-  canCreate?: boolean;
 }
 
 interface Vendedora {
@@ -29,7 +28,7 @@ interface Gerente {
   region: string;
 }
 
-function Dashboard({ canEdit = false, canDelete = false, canCreate = false }: DashboardProps) {
+function Dashboard({ canEdit = false, canDelete = false }: DashboardProps) {
   const [vendedoras, setVendedoras] = useState<Vendedora[]>([]);
   const [busqueda, setBusqueda] = useState('');
   const [filteredVendedoras, setFilteredVendedoras] = useState<Vendedora[]>([]);
@@ -55,7 +54,6 @@ function Dashboard({ canEdit = false, canDelete = false, canCreate = false }: Da
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('usuario') || '{}');
     setUsuario(user);
-    console.log('Usuario logueado:', user);
   }, []);
 
   useEffect(() => {
@@ -63,7 +61,6 @@ function Dashboard({ canEdit = false, canDelete = false, canCreate = false }: Da
       try {
         const response = await api.get('/auth/usuarios?rol=GERENTE_ZONA');
         setGerentes(response.data);
-        console.log('Gerentes cargados:', response.data);
       } catch (error) {
         console.error('Error al cargar gerentes:', error);
       }
@@ -79,8 +76,6 @@ function Dashboard({ canEdit = false, canDelete = false, canCreate = false }: Da
           api.get('/auth/usuarios?rol=GERENTE_ZONA'),
         ]);
         
-        console.log('Vendedoras desde API:', vendedorasRes.data);
-        
         const gerentesPorId: Record<number, any> = {};
         usuariosRes.data.forEach((u: any) => {
           gerentesPorId[u.id] = u;
@@ -88,7 +83,6 @@ function Dashboard({ canEdit = false, canDelete = false, canCreate = false }: Da
         
         const vendedorasConZona = vendedorasRes.data.map((v: any) => {
           const gerente = v.creadaPorId ? gerentesPorId[v.creadaPorId] : null;
-          console.log(`Vendedora ${v.nombre}: creadaPorId=${v.creadaPorId}, gerente=`, gerente);
           return {
             ...v,
             creadaPor: gerente?.nombre || null,
@@ -140,15 +134,12 @@ function Dashboard({ canEdit = false, canDelete = false, canCreate = false }: Da
       let gerenteZonaId = null;
       
       if (user.rol === 'GERENTE_ZONA') {
-        gerenteZonaId = user.gerenteZonaId;
+        gerenteZonaId = user.id;
       } else if (user.rol === 'ADMIN' && formData.creadaPorId) {
         gerenteZonaId = parseInt(formData.creadaPorId);
       }
 
-      console.log('=== ENVIANDO VENDEDORA ===');
-      console.log('Usuario rol:', user.rol);
-      console.log('gerenteZonaId a enviar:', gerenteZonaId);
-      console.log('Datos completos:', {
+      await api.post('/vendedora', {
         nombre: formData.nombre,
         cedula: formData.cedula,
         reputacion: formData.reputacion,
@@ -156,17 +147,6 @@ function Dashboard({ canEdit = false, canDelete = false, canCreate = false }: Da
         direccion: formData.direccion,
         gerenteZonaId: gerenteZonaId,
       });
-
-      const response = await api.post('/vendedora', {
-        nombre: formData.nombre,
-        cedula: formData.cedula,
-        reputacion: formData.reputacion,
-        telefono: formData.telefono,
-        direccion: formData.direccion,
-        gerenteZonaId: gerenteZonaId,
-      });
-      
-      console.log('Respuesta del servidor:', response.data);
       
       setShowModal(false);
       setFormData({ 
@@ -207,38 +187,34 @@ function Dashboard({ canEdit = false, canDelete = false, canCreate = false }: Da
     }
   };
 
-  const getColorReputacion = (reputacion: string) => {
-    switch (reputacion) {
-      case 'POSITIVA': return 'bg-emerald-100 text-emerald-700';
-      case 'OBSERVADA': return 'bg-amber-100 text-amber-700';
-      case 'RESTRINGIDA': return 'bg-rose-100 text-rose-700';
-      default: return 'bg-blue-100 text-blue-700';
-    }
-  };
-
-  const getTextoReputacion = (reputacion: string) => {
-    switch (reputacion) {
-      case 'POSITIVA': return 'Positiva';
-      case 'OBSERVADA': return 'Observada';
-      case 'RESTRINGIDA': return 'Restringida';
-      default: return 'Nueva';
-    }
-  };
-
-  const getReputacionIcon = (reputacion: string) => {
-    switch (reputacion) {
-      case 'POSITIVA': return <CheckCircle className="w-4 h-4" />;
-      case 'OBSERVADA': return <AlertCircle className="w-4 h-4" />;
-      case 'RESTRINGIDA': return <Shield className="w-4 h-4" />;
-      default: return <Users className="w-4 h-4" />;
-    }
-  };
-
-  const getColorZona = (zona: string | null) => {
-    switch (zona) {
-      case 'Portuguesa': return 'bg-green-100 text-green-700';
-      case 'Cojedes': return 'bg-blue-100 text-blue-700';
-      default: return 'bg-gray-100 text-gray-500';
+  const handleDelete = async (id: number) => {
+    if (confirm('¿Eliminar esta vendedora?')) {
+      try {
+        await api.delete(`/vendedora/${id}`);
+        const vendedorasRes = await api.get('/vendedora');
+        const usuariosRes = await api.get('/auth/usuarios?rol=GERENTE_ZONA');
+        
+        const gerentesPorId: Record<number, any> = {};
+        usuariosRes.data.forEach((u: any) => {
+          gerentesPorId[u.id] = u;
+        });
+        
+        const vendedorasConZona = vendedorasRes.data.map((v: any) => {
+          const gerente = v.creadaPorId ? gerentesPorId[v.creadaPorId] : null;
+          return {
+            ...v,
+            creadaPor: gerente?.nombre || null,
+            zona: gerente?.region || null,
+            creadaPorId: v.creadaPorId || null,
+          };
+        });
+        
+        setVendedoras(vendedorasConZona);
+        setFilteredVendedoras(vendedorasConZona);
+        alert('✅ Vendedora eliminada');
+      } catch (error) {
+        alert('❌ Error al eliminar vendedora');
+      }
     }
   };
 
@@ -252,187 +228,148 @@ function Dashboard({ canEdit = false, canDelete = false, canCreate = false }: Da
 
   return (
     <div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
-        <div className="group bg-gradient-to-br from-white to-indigo-50/30 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-6 border border-white/50">
-          <div className="flex items-center justify-between">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl shadow-lg p-5 text-white">
+          <div className="flex justify-between items-start">
             <div>
-              <p className="text-slate-500 text-sm font-medium">Total Vendedoras</p>
-              <p className="text-3xl font-bold text-slate-800 mt-1">{stats.totalVendedoras}</p>
-              <p className="text-xs text-emerald-600 mt-2">+{stats.reportesRecientes} esta semana</p>
+              <p className="text-indigo-100 text-sm">Total Vendedoras</p>
+              <p className="text-3xl font-bold mt-1">{stats.totalVendedoras}</p>
             </div>
-            <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-              <Users className="w-6 h-6 text-indigo-600" />
-            </div>
+            <ShoppingBag className="w-8 h-8 text-indigo-200" />
           </div>
         </div>
-        
-        <div className="group bg-gradient-to-br from-white to-indigo-50/30 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-6 border border-white/50">
-          <div className="flex items-center justify-between">
+
+        <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl shadow-lg p-5 text-white">
+          <div className="flex justify-between items-start">
             <div>
-              <p className="text-slate-500 text-sm font-medium">Gerentes de Zona</p>
-              <p className="text-3xl font-bold text-slate-800 mt-1">{stats.totalGerentes}</p>
-              <p className="text-xs text-slate-500 mt-2">Activos</p>
+              <p className="text-emerald-100 text-sm">Gerentes de Zona</p>
+              <p className="text-3xl font-bold mt-1">{stats.totalGerentes}</p>
             </div>
-            <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-              <UserPlus className="w-6 h-6 text-indigo-600" />
-            </div>
+            <Users className="w-8 h-8 text-emerald-200" />
           </div>
         </div>
-        
-        <div className="group bg-gradient-to-br from-white to-indigo-50/30 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-6 border border-white/50">
-          <div className="flex items-center justify-between">
+
+        <div className="bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl shadow-lg p-5 text-white">
+          <div className="flex justify-between items-start">
             <div>
-              <p className="text-slate-500 text-sm font-medium">Consultas este mes</p>
-              <p className="text-3xl font-bold text-slate-800 mt-1">{stats.consultasMes}</p>
-              <p className="text-xs text-slate-500 mt-2">+12% vs mes anterior</p>
+              <p className="text-amber-100 text-sm">Consultas este mes</p>
+              <p className="text-3xl font-bold mt-1">{stats.consultasMes}</p>
             </div>
-            <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-              <TrendingUp className="w-6 h-6 text-indigo-600" />
-            </div>
+            <TrendingUp className="w-8 h-8 text-amber-200" />
           </div>
         </div>
-        
-        <div className="group bg-gradient-to-br from-white to-indigo-50/30 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-6 border border-white/50">
-          <div className="flex items-center justify-between">
+
+        <div className="bg-gradient-to-br from-rose-500 to-rose-600 rounded-xl shadow-lg p-5 text-white">
+          <div className="flex justify-between items-start">
             <div>
-              <p className="text-slate-500 text-sm font-medium">Registradas</p>
-              <p className="text-3xl font-bold text-slate-800 mt-1">{stats.totalVendedoras}</p>
-              <p className="text-xs text-slate-500 mt-2">En total</p>
+              <p className="text-rose-100 text-sm">Reportes recientes</p>
+              <p className="text-3xl font-bold mt-1">{stats.reportesRecientes}</p>
             </div>
-            <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-              <ShoppingBag className="w-6 h-6 text-indigo-600" />
-            </div>
+            <AlertCircle className="w-8 h-8 text-rose-200" />
           </div>
         </div>
       </div>
 
-      <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg p-5 mb-8 border border-white/50">
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex-1">
-            <label className="block text-sm font-medium text-slate-700 mb-1">Buscar vendedora</label>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
-              <input
-                type="text"
-                placeholder="Nombre o cédula..."
-                value={busqueda}
-                onChange={(e) => setBusqueda(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-              />
-            </div>
-          </div>
-          {canCreate && (
-            <button
-              onClick={() => setShowModal(true)}
-              className="px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-medium shadow-md hover:shadow-xl transition-all duration-300 hover:scale-105 flex items-center gap-2 whitespace-nowrap"
-            >
-              <UserPlus className="w-4 h-4" />
-              Registrar Vendedora
-            </button>
-          )}
+      <div className="mb-6">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+          <input
+            type="text"
+            placeholder="Buscar por nombre o cédula..."
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg"
+          />
         </div>
       </div>
 
-      <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg overflow-hidden border border-white/50">
-        <div className="px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
-          <h3 className="text-lg font-semibold text-slate-800">Listado de Vendedoras</h3>
-          <p className="text-sm text-slate-500 mt-0.5">Gestión y seguimiento de vendedoras registradas</p>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-slate-200">
-            <thead className="bg-slate-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Nombre</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Cédula</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Reputación</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Gerente que Registró</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Zona</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Fecha</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-slate-200">
-              {filteredVendedoras.slice(0, 10).map((v) => (
-                <tr key={v.id} className="hover:bg-indigo-50/30 transition-colors duration-150">
-                  <td className="px-6 py-4 font-medium text-slate-800">{v.nombre}</td>
-                  <td className="px-6 py-4 text-slate-600 font-mono text-sm">{v.cedula}</td>
-                  <td className="px-6 py-4">
-                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium ${getColorReputacion(v.reputacion)}`}>
-                      {getReputacionIcon(v.reputacion)}
-                      {getTextoReputacion(v.reputacion)}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-slate-600">
-                    {v.creadaPor || 'Sin asignar'}
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2 py-1 rounded-lg text-xs font-medium ${getColorZona(v.zona)}`}>
-                      {v.zona || 'Sin asignar'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-slate-500 text-sm">
-                    {new Date(v.createdAt).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      {canEdit && (
-                        <button className="p-1.5 rounded-lg hover:bg-indigo-100 transition">
-                          <Edit className="w-4 h-4 text-indigo-600" />
-                        </button>
-                      )}
-                      {canDelete && (
-                        <button className="p-1.5 rounded-lg hover:bg-rose-100 transition">
-                          <Trash2 className="w-4 h-4 text-rose-500" />
-                        </button>
-                      )}
-                      <button className="p-1.5 rounded-lg hover:bg-slate-100 transition">
-                        <MoreHorizontal className="w-4 h-4 text-slate-400" />
+      <div className="bg-white rounded-xl shadow overflow-hidden">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cédula</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reputación</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gerente que registró</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Zona</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-200">
+            {filteredVendedoras.map((v) => (
+              <tr key={v.id}>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{v.nombre}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">{v.cedula}</td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    v.reputacion === 'POSITIVA' ? 'bg-green-100 text-green-800' :
+                    v.reputacion === 'OBSERVADA' ? 'bg-yellow-100 text-yellow-800' :
+                    v.reputacion === 'RESTRINGIDA' ? 'bg-red-100 text-red-800' :
+                    'bg-gray-100 text-gray-800'
+                  }`}>
+                    {v.reputacion}
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{v.creadaPor || '-'}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{v.zona || '-'}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  <div className="flex gap-2">
+                    {canEdit && (
+                      <button className="text-indigo-600 hover:text-indigo-800">
+                        <Edit className="w-4 h-4" />
                       </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {filteredVendedoras.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-slate-400">
-                    <div className="flex flex-col items-center gap-2">
-                      <Users className="w-12 h-12 text-slate-300" />
-                      <p>No hay vendedoras registradas</p>
-                    </div>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+                    )}
+                    {canDelete && (
+                      <button onClick={() => handleDelete(v.id)} className="text-red-600 hover:text-red-800">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
       <Modal isOpen={showModal} onClose={() => setShowModal(false)} title="Registrar Vendedora" size="md">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Nombre completo *</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Nombre</label>
             <input
               type="text"
               value={formData.nombre}
               onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg"
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Cédula *</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Cédula</label>
             <input
               type="text"
               value={formData.cedula}
               onChange={(e) => setFormData({ ...formData, cedula: e.target.value })}
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg font-mono"
               required
             />
           </div>
           <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Reputación</label>
+            <select
+              value={formData.reputacion}
+              onChange={(e) => setFormData({ ...formData, reputacion: e.target.value })}
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg"
+            >
+              <option value="POSITIVA">🟢 Positiva</option>
+              <option value="OBSERVADA">🟡 Observada</option>
+              <option value="RESTRINGIDA">🔴 Restringida</option>
+            </select>
+          </div>
+          <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Teléfono</label>
             <input
-              type="tel"
+              type="text"
               value={formData.telefono}
               onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
               className="w-full px-3 py-2 border border-slate-200 rounded-lg"
@@ -447,20 +384,6 @@ function Dashboard({ canEdit = false, canDelete = false, canCreate = false }: Da
               rows={2}
             />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Reputación</label>
-            <select
-              value={formData.reputacion}
-              onChange={(e) => setFormData({ ...formData, reputacion: e.target.value })}
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg"
-            >
-              <option value="POSITIVA">✅ Positiva</option>
-              <option value="OBSERVADA">⚠️ Observada</option>
-              <option value="RESTRINGIDA">🔴 Restringida</option>
-              <option value="NUEVA">🔵 Nueva</option>
-            </select>
-          </div>
-
           {usuario?.rol === 'ADMIN' && (
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Asignar a Gerente (opcional)</label>
@@ -471,18 +394,11 @@ function Dashboard({ canEdit = false, canDelete = false, canCreate = false }: Da
               >
                 <option value="">Sin asignar</option>
                 {gerentes.map((g) => (
-                  <option key={g.id} value={g.id}>{g.nombre} - {g.region}</option>
+                  <option key={g.id} value={g.id}>{g.nombre}</option>
                 ))}
               </select>
             </div>
           )}
-
-          {usuario?.rol === 'GERENTE_ZONA' && (
-            <div className="text-xs text-slate-500 bg-slate-50 p-2 rounded-lg">
-              ℹ️ La vendedora será asignada automáticamente a tu zona
-            </div>
-          )}
-
           <div className="flex justify-end gap-3 pt-4">
             <button
               type="button"

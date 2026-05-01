@@ -25,7 +25,6 @@ function UsuariosAdmin() {
   const [error, setError] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [editUsuario, setEditUsuario] = useState<Usuario | null>(null);
   const [regiones, setRegiones] = useState<Region[]>([]);
   const [formData, setFormData] = useState({
     email: '',
@@ -127,7 +126,6 @@ function UsuariosAdmin() {
         <div className="flex gap-2">
           <button
             onClick={() => {
-              setEditUsuario(row);
               setEditFormData({
                 email: row.email,
                 nombre: row.nombre,

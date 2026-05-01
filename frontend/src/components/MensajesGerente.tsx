@@ -17,7 +17,7 @@ interface Mensaje {
 }
 
 function MensajesGerente() {
-  const { error, handleError, clearError, wrapAsync } = useErrorHandler();
+  const { error, wrapAsync } = useErrorHandler();
   const [mensajes, setMensajes] = useState<Mensaje[]>([]);
   const [filteredMensajes, setFilteredMensajes] = useState<Mensaje[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,6 +29,8 @@ function MensajesGerente() {
     await wrapAsync(async () => {
       const response = await api.get('/mensajes/recibidos');
       setMensajes(response.data);
+      setFilteredMensajes(response.data);
+      setLoading(false);
     }, MESSAGES.ERROR_LOAD);
   }, [wrapAsync]);
 
@@ -36,7 +38,6 @@ function MensajesGerente() {
     fetchMensajes();
   }, [fetchMensajes]);
 
-  // Filtrar mensajes
   const filtered = useMemo(() => {
     if (!busqueda.trim()) return mensajes;
     return mensajes.filter(m =>
@@ -77,7 +78,11 @@ function MensajesGerente() {
     },
     { key: 'titulo', label: 'Título', className: 'font-medium' },
     { key: 'remitenteNombre', label: 'Remitente' },
-    { key: 'createdAt', label: 'Fecha', render: (value: string) => new Date(value).toLocaleString() },
+    {
+      key: 'createdAt',
+      label: 'Fecha',
+      render: (value: string) => new Date(value).toLocaleString()
+    },
     {
       key: 'acciones',
       label: 'Acciones',
@@ -94,11 +99,7 @@ function MensajesGerente() {
   ], [openMensaje]);
 
   if (loading) {
-    return (
-      <div className="p-6">
-        <LoadingSpinner message={MESSAGES.LOADING} />
-      </div>
-    );
+    return <LoadingSpinner message={MESSAGES.LOADING} />;
   }
 
   return (
@@ -121,7 +122,7 @@ function MensajesGerente() {
           placeholder="Buscar por título, remitente o contenido..."
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
-          className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full max-w-md"
           aria-label="Buscar mensajes"
         />
       </div>

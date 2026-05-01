@@ -9,7 +9,6 @@ function GerenteDashboard() {
         title="Dashboard Gerente"
         canEdit={true}
         canDelete={false}
-        canCreate={true}
       />
     </LayoutGerente>
   );
