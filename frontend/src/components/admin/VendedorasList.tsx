@@ -1,32 +1,9 @@
 ﻿import { useEffect, useState, useCallback } from 'react';
-import api from '../../services/api';
+import { vendedoraService, regionService } from '../../services/api';
 import DataTable from '../DataTable';
 import Modal from '../Modal';
 import { Search, Plus, Edit, Trash2 } from 'lucide-react';
-
-interface Vendedora {
-  id: number;
-  nombre: string;
-  cedula: string;
-  telefono: string;
-  direccion: string;
-  reputacion: string;
-  region_nombre: string;
-  creada_por_nombre: string;
-  gerente_zona_nombre: string;
-  createdAt: string;
-}
-
-interface Region {
-  id: number;
-  nombre: string;
-}
-
-interface GerenteZona {
-  id: number;
-  nombre: string;
-  region: string;
-}
+import { Vendedora, Region, CreateVendedoraRequest } from '../../types';
 
 interface VendedorasListProps {
   canEdit?: boolean;
@@ -40,23 +17,26 @@ function VendedorasList({ canEdit = true, canDelete = true, canCreate = true }: 
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [regiones, setRegiones] = useState<Region[]>([]);
-  const [gerentesZona, setGerentesZona] = useState<GerenteZona[]>([]);
   const [filtroRegion, setFiltroRegion] = useState('');
-  const [filtroGerente, setFiltroGerente] = useState('');
   const [busqueda, setBusqueda] = useState('');
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<CreateVendedoraRequest>({
     nombre: '',
     cedula: '',
     reputacion: 'BUENA',
     telefono: '',
     direccion: '',
-    regionId: '',
-    gerenteZonaId: '',
+    regionId: 0,
+    gerenteZonaId: undefined,
   });
 
   const fetchVendedoras = useCallback(async () => {
     try {
-      const response = await api.get('/vendedora');
+      const params: { regionId?: number } = {};
+      if (filtroRegion) {
+        const region = regiones.find(r => r.nombre === filtroRegion);
+        if (region) params.regionId = region.id;
+      }
+      const response = await vendedoraService.listar(params);
       setVendedoras(response.data);
       setFilteredVendedoras(response.data);
     } catch (error) {
@@ -64,32 +44,24 @@ function VendedorasList({ canEdit = true, canDelete = true, canCreate = true }: 
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [filtroRegion, regiones]);
 
   const fetchRegiones = useCallback(async () => {
     try {
-      const response = await api.get('/regiones');
+      const response = await regionService.listar();
       setRegiones(response.data);
     } catch (error) {
       console.error('Error al cargar regiones:', error);
     }
   }, []);
 
-  const fetchGerentesZona = useCallback(async (regionId?: string) => {
-    try {
-      const url = regionId ? `/gerentes-zona?regionId=${regionId}` : '/gerentes-zona';
-      const response = await api.get(url);
-      setGerentesZona(response.data);
-    } catch (error) {
-      console.error('Error al cargar gerentes zona:', error);
-    }
-  }, []);
+  useEffect(() => {
+    fetchRegiones();
+  }, [fetchRegiones]);
 
   useEffect(() => {
     fetchVendedoras();
-    fetchRegiones();
-    fetchGerentesZona();
-  }, [fetchVendedoras, fetchRegiones, fetchGerentesZona]);
+  }, [fetchVendedoras]);
 
   useEffect(() => {
     let filtered = [...vendedoras];
@@ -99,40 +71,15 @@ function VendedorasList({ canEdit = true, canDelete = true, canCreate = true }: 
         v.cedula.includes(busqueda)
       );
     }
-    if (filtroRegion) {
-      filtered = filtered.filter(v => v.region_nombre === filtroRegion);
-    }
-    if (filtroGerente) {
-      filtered = filtered.filter(v => v.gerente_zona_nombre === filtroGerente);
-    }
     setFilteredVendedoras(filtered);
-  }, [vendedoras, busqueda, filtroRegion, filtroGerente]);
-
-  useEffect(() => {
-    if (filtroRegion) {
-      const region = regiones.find(r => r.nombre === filtroRegion);
-      if (region) {
-        fetchGerentesZona(region.id.toString());
-      }
-    } else {
-      fetchGerentesZona();
-    }
-  }, [filtroRegion, regiones, fetchGerentesZona]);
+  }, [vendedoras, busqueda]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await api.post('/vendedora', {
-        nombre: formData.nombre,
-        cedula: formData.cedula,
-        reputacion: formData.reputacion,
-        telefono: formData.telefono,
-        direccion: formData.direccion,
-        regionId: formData.regionId,
-        gerenteZonaId: formData.gerenteZonaId || null,
-      });
+      await vendedoraService.crear(formData);
       setShowModal(false);
-      setFormData({ nombre: '', cedula: '', reputacion: 'BUENA', telefono: '', direccion: '', regionId: '', gerenteZonaId: '' });
+      setFormData({ nombre: '', cedula: '', reputacion: 'BUENA', telefono: '', direccion: '', regionId: 0, gerenteZonaId: undefined });
       fetchVendedoras();
       alert('✅ Vendedora registrada exitosamente');
     } catch (error: any) {
@@ -143,7 +90,7 @@ function VendedorasList({ canEdit = true, canDelete = true, canCreate = true }: 
   const handleDelete = async (id: number) => {
     if (confirm('¿Eliminar esta vendedora?')) {
       try {
-        await api.delete(`/vendedora/${id}`);
+        await vendedoraService.eliminar(id);
         fetchVendedoras();
         alert('✅ Vendedora eliminada');
       } catch (error) {
@@ -233,20 +180,6 @@ function VendedorasList({ canEdit = true, canDelete = true, canCreate = true }: 
           </select>
         </div>
 
-        <div className="w-64">
-          <label className="block text-sm font-medium text-slate-700 mb-1">Gerente Zona</label>
-          <select
-            value={filtroGerente}
-            onChange={(e) => setFiltroGerente(e.target.value)}
-            className="w-full px-3 py-2 border border-slate-200 rounded-lg"
-          >
-            <option value="">Todos</option>
-            {gerentesZona.map(g => (
-              <option key={g.id} value={g.nombre}>{g.nombre}</option>
-            ))}
-          </select>
-        </div>
-
         {canCreate && (
           <button
             onClick={() => setShowModal(true)}
@@ -325,34 +258,16 @@ function VendedorasList({ canEdit = true, canDelete = true, canCreate = true }: 
             <label className="block text-sm font-medium text-slate-700 mb-1">Región *</label>
             <select
               value={formData.regionId}
-              onChange={(e) => {
-                setFormData({ ...formData, regionId: e.target.value, gerenteZonaId: '' });
-                fetchGerentesZona(e.target.value);
-              }}
+              onChange={(e) => setFormData({ ...formData, regionId: parseInt(e.target.value) })}
               className="w-full px-3 py-2 border border-slate-200 rounded-lg"
               required
             >
-              <option value="">Seleccionar región</option>
+              <option value={0}>Seleccionar región</option>
               {regiones.map(r => (
                 <option key={r.id} value={r.id}>{r.nombre}</option>
               ))}
             </select>
           </div>
-          {formData.regionId && gerentesZona.length > 0 && (
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Asignar a Gerente Zona (opcional)</label>
-              <select
-                value={formData.gerenteZonaId}
-                onChange={(e) => setFormData({ ...formData, gerenteZonaId: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-200 rounded-lg"
-              >
-                <option value="">Sin asignar</option>
-                {gerentesZona.map(g => (
-                  <option key={g.id} value={g.id}>{g.nombre}</option>
-                ))}
-              </select>
-            </div>
-          )}
           <div className="flex justify-end gap-3 pt-4">
             <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 border border-slate-200 rounded-lg">
               Cancelar

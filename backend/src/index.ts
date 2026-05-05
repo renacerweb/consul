@@ -10,24 +10,34 @@
  * @module Server
  */
 
+// ==================== CARGAR VARIABLES DE ENTORNO PRIMERO ====================
+import dotenv from 'dotenv';
+import path from 'path';
+
+// Cargar .env desde la raíz del backend
+dotenv.config({ path: path.join(__dirname, '../.env') });
+
+// Verificar que se cargó
+console.log('========================================');
+console.log('🔍 [index.ts] Verificando configuración:');
+console.log('  DATABASE_URL:', process.env.DATABASE_URL ? '✅ CONFIGURADA' : '❌ NO CONFIGURADA');
+console.log('  JWT_SECRET:', process.env.JWT_SECRET ? '✅ CONFIGURADO' : '❌ NO CONFIGURADO');
+console.log('  NODE_ENV:', process.env.NODE_ENV || 'development');
+console.log('========================================');
+
+// ==================== IMPORTS ====================
 import express from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
 import rateLimit from 'express-rate-limit'
-import dotenv from 'dotenv'
 import authRoutes from './routes/authRoutes'
 import vendedoraRoutes from './routes/vendedoraRoutes'
 import zonaRoutes from './routes/zonaRoutes'
 import mensajeRoutes from './routes/mensajeRoutes'
 import seguridadRoutes from './routes/seguridadRoutes'
 
-// Cargar variables de entorno desde .env
-dotenv.config()
-
 const app = express()
-const PORT: number = parseInt(process.env.PORT || '3000', 10)
-
-
+const PORT: number = parseInt(process.env.PORT || '3001', 10)
 
 // ==================== MIDDLEWARES DE SEGURIDAD ====================
 
@@ -38,7 +48,7 @@ app.use(helmet())
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173'
 const allowedOrigins = process.env.NODE_ENV === 'production'
   ? [FRONTEND_URL]
-  : ['http://localhost:5173', 'http://localhost:3000', FRONTEND_URL]
+  : ['http://localhost:5173', 'http://localhost:3001', FRONTEND_URL]
 
 app.use(cors({
   origin: allowedOrigins,
@@ -79,6 +89,14 @@ app.use('/api/zonas', zonaRoutes)
 app.use('/api/mensajes', mensajeRoutes)
 app.use('/api/seguridad', seguridadRoutes)
 
+// ==================== RUTA DIRECTA PARA REGIONES (TEMPORAL) ====================
+app.get('/api/regiones', (req, res) => {
+  res.json([
+    { id: 1, nombre: 'Portuguesa' },
+    { id: 2, nombre: 'Cojedes' }
+  ]);
+});
+
 // ==================== RUTAS DE PRUEBA ====================
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Servidor funcionando' })
@@ -92,6 +110,7 @@ app.get('/api/test', (req, res) => {
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`)
   console.log(`📋 Health: http://localhost:${PORT}/api/health`)
+  console.log(`📋 Regiones: http://localhost:${PORT}/api/regiones`)
   console.log(`📋 Vendedora: http://localhost:${PORT}/api/vendedora/buscar/12345678`)
   console.log(`🔒 Modo: ${process.env.NODE_ENV || 'development'}`)
 })

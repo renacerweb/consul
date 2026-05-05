@@ -1,27 +1,11 @@
-﻿/**
- * SERVICIO DE API (AXIOS)
- * Configuración central de todas las llamadas al backend
- * Backend alojado en Render
- */
+﻿import axios from 'axios';
+import { Vendedora, CreateVendedoraRequest, Region } from '../types';
 
-import axios from 'axios';
-
-// URL del backend en Render (fija, sin import.meta.env)
-const API_URL = 'https://sistema-renacer-api.onrender.com/api';
-
-// Crear instancia de axios con configuración base
 const api = axios.create({
-  baseURL: API_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  withCredentials: false,
+  baseURL: '/api',
+  headers: { 'Content-Type': 'application/json' },
 });
 
-/**
- * INTERCEPTOR DE PETICIONES (REQUEST)
- * Agrega automáticamente el token JWT a los headers
- */
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) {
@@ -30,36 +14,38 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-/**
- * INTERCEPTOR DE RESPUESTAS (RESPONSE)
- * Maneja errores 401 (token expirado)
- */
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('usuario');
-      localStorage.removeItem('rememberedEmail');
-      
-      if (!window.location.pathname.includes('/login')) {
-        window.location.href = '/login';
-      }
-    }
-    return Promise.reject(error);
-  }
-);
+// =====================================================
+// SERVICIOS DE VENDEDORAS
+// =====================================================
 
-// Funciones de autenticación
-export const auth = {
-  login: (email: string, password: string) =>
-    api.post('/auth/login', { email, password }),
-  me: () => api.get('/auth/me'),
-  logout: () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('usuario');
-    localStorage.removeItem('rememberedEmail');
-  },
+export const vendedoraService = {
+  // Listar todas las vendedoras (con filtros)
+  listar: (params?: { regionId?: number; gerenteZonaId?: number }) =>
+    api.get<Vendedora[]>('/vendedora', { params }),
+  
+  // Buscar por cédula (público)
+  buscar: (cedula: string) => 
+    api.get<Vendedora>(`/vendedora/buscar/${cedula}`),
+  
+  // Crear nueva vendedora
+  crear: (data: CreateVendedoraRequest) => 
+    api.post('/vendedora', data),
+  
+  // Actualizar reputación
+  actualizar: (id: number, reputacion: string) => 
+    api.put(`/vendedora/${id}`, { reputacion }),
+  
+  // Eliminar vendedora
+  eliminar: (id: number) => 
+    api.delete(`/vendedora/${id}`),
+};
+
+// =====================================================
+// SERVICIOS DE REGIONES
+// =====================================================
+export const regionService = {
+  listar: () => 
+    api.get<Region[]>('/regiones'),
 };
 
 export default api;

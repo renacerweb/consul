@@ -32,9 +32,9 @@ router.put('/usuarios/:id', autenticar, permitirRoles('ADMIN', 'GERENTE_REGIONAL
 router.delete('/usuarios/:id', autenticar, permitirRoles('ADMIN'), eliminarUsuarioController);
 
 // =====================================================
-// REGIONES (para selects)
+// REGIONES (para selects en frontend)
 // =====================================================
-router.get('/regiones', autenticar, permitirRoles('ADMIN'), listarRegionesController);
+router.get('/regiones', autenticar, permitirRoles('ADMIN', 'GERENTE_REGIONAL'), listarRegionesController);
 
 // =====================================================
 // GERENTES ZONA (para selector)
