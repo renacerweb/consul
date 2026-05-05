@@ -48,7 +48,7 @@ export const LAYOUT_CONFIGS: Record<string, LayoutConfig> = {
   GERENTE: {
     menuItems: [
       { to: '/gerente', label: 'Inicio', icon: '📊' },
-      { to: '/gerente/vendedoras', label: 'Mis Vendedoras', icon: '👩' },
+      { to: '/gerente/vendedoras', label: 'Vendedoras', icon: '👩' },
       { to: '/gerente/mensajes', label: 'Mensajes', icon: '📬' },
     ],
     sidebarBg: 'bg-amber-700',

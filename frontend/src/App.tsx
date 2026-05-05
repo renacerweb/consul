@@ -24,6 +24,7 @@ const GerenteRegionalVendedoras = lazy(() => import('./pages/gerente-regional/Ve
 // Gerente Zona
 const GerenteDashboard = lazy(() => import('./pages/gerente/Dashboard'));
 const GerenteMensajes = lazy(() => import('./pages/gerente/Mensajes'));
+const GerenteVendedoras = lazy(() => import('./pages/gerente/Vendedoras'));
 
 // Auxiliar
 const AuxiliarDashboard = lazy(() => import('./pages/auxiliar/Dashboard'));
@@ -82,10 +83,16 @@ function App() {
                   <GerenteRegionalVendedoras />
                 </ProtectedRoute>
               } />
+              
               {/* Rutas GERENTE_ZONA */}
               <Route path="/gerente" element={
                 <ProtectedRoute allowedRoles={['GERENTE_ZONA']}>
                   <GerenteDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/gerente/vendedoras" element={
+                <ProtectedRoute allowedRoles={['GERENTE_ZONA']}>
+                  <GerenteVendedoras />
                 </ProtectedRoute>
               } />
               <Route path="/gerente/mensajes" element={

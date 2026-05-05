@@ -12,7 +12,11 @@ export async function listarVendedorasController(req: Request, res: Response) {
 
     let query = `
       SELECT 
-        v.*,
+        v.id,
+        v.nombre,
+        v.cedula,
+        v.reputacion,
+        v."createdAt",
         r.nombre as region_nombre,
         u.nombre as creada_por_nombre,
         gz.nombre as gerente_zona_nombre
@@ -21,6 +25,7 @@ export async function listarVendedorasController(req: Request, res: Response) {
       LEFT JOIN "Usuario" u ON v."creadaPorId" = u.id
       LEFT JOIN "Usuario" gz ON v."gerenteZonaId" = gz.id
     `;
+    // ... resto del código
     const params: any[] = [];
     const conditions: string[] = [];
 
@@ -117,12 +122,21 @@ export async function buscarVendedoraController(req: Request, res: Response) {
 }
 
 // =====================================================
-// CREAR VENDEDORA (con permisos según rol)
+// CREAR VENDEDORA (con asignación automática para GERENTE_ZONA)
 // =====================================================
 export async function crearVendedoraController(req: Request, res: Response) {
   try {
     const { nombre, cedula, reputacion, telefono, direccion, regionId, gerenteZonaId } = req.body;
     const usuario = (req as any).usuario;
+    // =====================================================
+    // LOG 1: Ver qué usuario está autenticado
+    // =====================================================
+    console.log('========================================');
+    console.log('📝 [LOG 1] Usuario autenticado:');
+    console.log('  ID:', usuario.id);
+    console.log('  Rol:', usuario.rol);
+    console.log('  RegionId del token:', usuario.regionId);
+    console.log('========================================');
 
     // Verificar que la cédula no exista
     const existe = await pool.query('SELECT id FROM "Vendedora" WHERE cedula = $1', [cedula]);
@@ -146,12 +160,10 @@ export async function crearVendedoraController(req: Request, res: Response) {
       );
       const regionesGerente = regionesResult.rows.map(r => r.regionId);
       
-      // Verificar que la región sea válida
       if (!finalRegionId || !regionesGerente.includes(finalRegionId)) {
         return res.status(403).json({ error: 'No tienes permiso para registrar vendedoras en esta región' });
       }
       
-      // Si asignó un gerente zona, verificar que pertenezca a la región
       if (finalGerenteZonaId) {
         const gerenteResult = await pool.query(
           `SELECT u.id, u."regionId" FROM "Usuario" u WHERE u.id = $1 AND u.rol = 'GERENTE_ZONA'`,
@@ -166,7 +178,9 @@ export async function crearVendedoraController(req: Request, res: Response) {
       }
     } 
     else if (usuario.rol === 'GERENTE_ZONA') {
-      // Obtener la región del gerente zona
+      // =====================================================
+      // GERENTE_ZONA: asignación automática
+      // =====================================================
       const gerenteResult = await pool.query(
         `SELECT "regionId" FROM "Usuario" WHERE id = $1`,
         [usuario.id]
@@ -206,6 +220,8 @@ export async function crearVendedoraController(req: Request, res: Response) {
        VALUES ($1, $2, $3)`,
       [result.rows[0].id, finalGerenteZonaId, reputacion || 'BUENA']
     );
+
+    console.log(`✅ Vendedora creada: ${nombre} (${cedula}) - Región: ${finalRegionId} - Gerente Zona: ${finalGerenteZonaId}`);
 
     res.status(201).json({ mensaje: 'Vendedora registrada correctamente', vendedora: result.rows[0] });
   } catch (error: any) {

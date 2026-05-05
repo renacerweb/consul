@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import api from '../services/api';
 import DataTable from './DataTable';
 import Modal from './Modal';
-import { UserPlus } from 'lucide-react';
+import { UserPlus, Edit, Trash2 } from 'lucide-react';
 
 interface Usuario {
   id: number;
@@ -10,6 +10,7 @@ interface Usuario {
   nombre: string;
   rol: string;
   regiones?: string;
+  regionIds?: number[];
   activo: boolean;
   createdAt: string;
 }
@@ -24,12 +25,21 @@ function UsuariosGerenteRegional() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editUsuario, setEditUsuario] = useState<Usuario | null>(null);
   const [regiones, setRegiones] = useState<Region[]>([]);
   const [formData, setFormData] = useState({
     email: '',
     nombre: '',
     password: '',
     rol: 'GERENTE_ZONA',
+    regionIds: [] as string[],
+  });
+  const [editFormData, setEditFormData] = useState({
+    email: '',
+    nombre: '',
+    rol: '',
+    password: '',
     regionIds: [] as string[],
   });
 
@@ -56,6 +66,16 @@ function UsuariosGerenteRegional() {
     }
   };
 
+  const fetchRegionesPorUsuario = async (usuarioId: number) => {
+    try {
+      const response = await api.get(`/auth/usuarios/${usuarioId}/regiones`);
+      return response.data.map((r: any) => r.id.toString());
+    } catch (err) {
+      console.error('Error al cargar regiones del usuario:', err);
+      return [];
+    }
+  };
+
   useEffect(() => {
     fetchUsuarios();
     fetchRegiones();
@@ -66,6 +86,14 @@ function UsuariosGerenteRegional() {
       setFormData({ ...formData, regionIds: [...formData.regionIds, regionId] });
     } else {
       setFormData({ ...formData, regionIds: formData.regionIds.filter(id => id !== regionId) });
+    }
+  };
+
+  const handleEditRegionChange = (regionId: string, checked: boolean) => {
+    if (checked) {
+      setEditFormData({ ...editFormData, regionIds: [...editFormData.regionIds, regionId] });
+    } else {
+      setEditFormData({ ...editFormData, regionIds: editFormData.regionIds.filter(id => id !== regionId) });
     }
   };
 
@@ -91,6 +119,63 @@ function UsuariosGerenteRegional() {
     }
   };
 
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editUsuario) return;
+    try {
+      const updateData: any = {
+        email: editFormData.email,
+        nombre: editFormData.nombre,
+        rol: editFormData.rol,
+      };
+      
+      if (editFormData.password && editFormData.password.trim() !== '') {
+        updateData.password = editFormData.password;
+      }
+      
+      if (editFormData.rol === 'GERENTE_ZONA') {
+        updateData.regionIds = editFormData.regionIds.map(id => parseInt(id, 10));
+      }
+      
+      await api.put(`/auth/usuarios/${editUsuario.id}`, updateData);
+      setShowEditModal(false);
+      fetchUsuarios();
+      alert('✅ Usuario actualizado correctamente');
+    } catch (error: any) {
+      alert('❌ Error al actualizar usuario: ' + (error.response?.data?.error || 'Error desconocido'));
+    }
+  };
+
+  const openEditModal = async (usuario: Usuario) => {
+    setEditUsuario(usuario);
+    let regionIds: string[] = [];
+    
+    if (usuario.rol === 'GERENTE_ZONA') {
+      regionIds = await fetchRegionesPorUsuario(usuario.id);
+    }
+    
+    setEditFormData({
+      email: usuario.email,
+      nombre: usuario.nombre,
+      rol: usuario.rol,
+      password: '',
+      regionIds: regionIds,
+    });
+    setShowEditModal(true);
+  };
+
+  const handleDelete = async (id: number) => {
+    if (confirm('¿Eliminar este usuario?')) {
+      try {
+        await api.delete(`/auth/usuarios/${id}`);
+        fetchUsuarios();
+        alert('✅ Usuario eliminado');
+      } catch (error) {
+        alert('❌ Error al eliminar usuario');
+      }
+    }
+  };
+
   const columns = [
     { key: 'nombre', label: 'Nombre' },
     { key: 'email', label: 'Email' },
@@ -109,6 +194,26 @@ function UsuariosGerenteRegional() {
       key: 'regiones',
       label: 'Regiones',
       render: (value: string) => value || '-'
+    },
+    {
+      key: 'acciones',
+      label: 'Acciones',
+      render: (_: any, row: Usuario) => (
+        <div className="flex gap-2">
+          <button
+            onClick={() => openEditModal(row)}
+            className="text-emerald-600 hover:text-emerald-800"
+          >
+            <Edit className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => handleDelete(row.id)}
+            className="text-rose-600 hover:text-rose-800"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+      )
     },
   ];
 
@@ -151,6 +256,7 @@ function UsuariosGerenteRegional() {
         emptyMessage="No hay usuarios registrados"
       />
 
+      {/* Modal para crear usuario */}
       <Modal isOpen={showModal} onClose={() => setShowModal(false)} title="Crear Usuario" size="md">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -195,7 +301,6 @@ function UsuariosGerenteRegional() {
             </select>
           </div>
 
-          {/* Selector de regiones (solo para GERENTE_ZONA) */}
           {formData.rol === 'GERENTE_ZONA' && (
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
@@ -224,6 +329,86 @@ function UsuariosGerenteRegional() {
             </button>
             <button type="submit" className="px-4 py-2 bg-emerald-600 text-white rounded-lg">
               Crear
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Modal para editar usuario */}
+      <Modal isOpen={showEditModal} onClose={() => setShowEditModal(false)} title="Editar Usuario" size="md">
+        <form onSubmit={handleSaveEdit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Nombre</label>
+            <input
+              type="text"
+              value={editFormData.nombre}
+              onChange={(e) => setEditFormData({ ...editFormData, nombre: e.target.value })}
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
+            <input
+              type="email"
+              value={editFormData.email}
+              onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Contraseña <span className="text-xs text-slate-400">(dejar en blanco para no cambiar)</span>
+            </label>
+            <input
+              type="password"
+              value={editFormData.password}
+              onChange={(e) => setEditFormData({ ...editFormData, password: e.target.value })}
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg"
+              placeholder="••••••••"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Rol</label>
+            <select
+              value={editFormData.rol}
+              onChange={(e) => setEditFormData({ ...editFormData, rol: e.target.value, regionIds: [] })}
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg"
+            >
+              <option value="GERENTE_ZONA">Gerente de Zona</option>
+              <option value="AUXILIAR">Auxiliar</option>
+            </select>
+          </div>
+
+          {editFormData.rol === 'GERENTE_ZONA' && (
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Regiones asignadas
+              </label>
+              <div className="space-y-2 border border-slate-200 rounded-lg p-3 bg-slate-50">
+                {regiones.map(region => (
+                  <label key={region.id} className="flex items-center gap-2 cursor-pointer hover:bg-slate-100 p-1 rounded">
+                    <input
+                      type="checkbox"
+                      value={region.id}
+                      checked={editFormData.regionIds.includes(region.id.toString())}
+                      onChange={(e) => handleEditRegionChange(e.target.value, e.target.checked)}
+                      className="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500"
+                    />
+                    <span className="text-slate-700">{region.nombre}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-end gap-3 pt-4">
+            <button type="button" onClick={() => setShowEditModal(false)} className="px-4 py-2 border border-slate-200 rounded-lg">
+              Cancelar
+            </button>
+            <button type="submit" className="px-4 py-2 bg-emerald-600 text-white rounded-lg">
+              Guardar
             </button>
           </div>
         </form>
