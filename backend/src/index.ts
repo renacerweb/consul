@@ -30,6 +30,7 @@ import express from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
 import rateLimit from 'express-rate-limit'
+import { autenticar } from './middleware/auth';
 import authRoutes from './routes/authRoutes'
 import vendedoraRoutes from './routes/vendedoraRoutes'
 import zonaRoutes from './routes/zonaRoutes'
@@ -89,8 +90,9 @@ app.use('/api/zonas', zonaRoutes)
 app.use('/api/mensajes', mensajeRoutes)
 app.use('/api/seguridad', seguridadRoutes)
 
-// ==================== RUTA DIRECTA PARA REGIONES (TEMPORAL) ====================
-app.get('/api/regiones', (req, res) => {
+// ==================== RUTA SEGURA PARA REGIONES ====================
+// Requiere autenticación (Bearer token)
+app.get('/api/regiones', autenticar, (req, res) => {
   res.json([
     { id: 1, nombre: 'Portuguesa' },
     { id: 2, nombre: 'Cojedes' }
