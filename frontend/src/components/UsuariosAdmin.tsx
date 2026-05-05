@@ -9,7 +9,8 @@ interface Usuario {
   email: string;
   nombre: string;
   rol: string;
-  region?: string;
+  regiones?: string;
+  regionIds?: number[];
   activo: boolean;
   createdAt: string;
 }
@@ -26,17 +27,20 @@ function UsuariosAdmin() {
   const [showModal, setShowModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [regiones, setRegiones] = useState<Region[]>([]);
+  const [editUsuario, setEditUsuario] = useState<Usuario | null>(null);
   const [formData, setFormData] = useState({
     email: '',
     nombre: '',
     password: '',
     rol: 'GERENTE_REGIONAL',
-    regionId: '',
+    regionIds: [] as string[],
   });
   const [editFormData, setEditFormData] = useState({
     email: '',
     nombre: '',
     rol: '',
+    password: '',
+    regionIds: [] as string[],
   });
 
   const fetchUsuarios = async () => {
@@ -62,27 +66,87 @@ function UsuariosAdmin() {
     }
   };
 
+  const fetchRegionesPorUsuario = async (usuarioId: number) => {
+    try {
+      const response = await api.get(`/auth/usuarios/${usuarioId}/regiones`);
+      return response.data.map((r: any) => r.id.toString());
+    } catch (err) {
+      console.error('Error al cargar regiones del usuario:', err);
+      return [];
+    }
+  };
+
   useEffect(() => {
     fetchUsuarios();
     fetchRegiones();
   }, []);
 
+  // Manejador para checkboxes de regiones en creación
+  const handleRegionChange = (regionId: string, checked: boolean) => {
+    if (checked) {
+      setFormData({ ...formData, regionIds: [...formData.regionIds, regionId] });
+    } else {
+      setFormData({ ...formData, regionIds: formData.regionIds.filter(id => id !== regionId) });
+    }
+  };
+
+  // Manejador para checkboxes de regiones en edición
+  const handleEditRegionChange = (regionId: string, checked: boolean) => {
+    if (checked) {
+      setEditFormData({ ...editFormData, regionIds: [...editFormData.regionIds, regionId] });
+    } else {
+      setEditFormData({ ...editFormData, regionIds: editFormData.regionIds.filter(id => id !== regionId) });
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const regionIdsNumber = formData.regionIds.map(id => parseInt(id, 10));
+      
       await api.post('/auth/registrar', {
         email: formData.email,
         nombre: formData.nombre,
         password: formData.password,
         rol: formData.rol,
-        regionId: formData.rol === 'GERENTE_REGIONAL' ? formData.regionId : null,
+        regionIds: formData.rol === 'GERENTE_REGIONAL' ? regionIdsNumber : [],
       });
+      
       setShowModal(false);
-      setFormData({ email: '', nombre: '', password: '', rol: 'GERENTE_REGIONAL', regionId: '' });
+      setFormData({ email: '', nombre: '', password: '', rol: 'GERENTE_REGIONAL', regionIds: [] });
       fetchUsuarios();
       alert('✅ Usuario creado exitosamente');
     } catch (error: any) {
       alert('❌ Error al crear usuario: ' + (error.response?.data?.error || 'Error desconocido'));
+    }
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editUsuario) return;
+    try {
+      const updateData: any = {
+        email: editFormData.email,
+        nombre: editFormData.nombre,
+        rol: editFormData.rol,
+      };
+      
+      // Solo incluir contraseña si se proporcionó
+      if (editFormData.password && editFormData.password.trim() !== '') {
+        updateData.password = editFormData.password;
+      }
+      
+      // Solo incluir regionIds si es GERENTE_REGIONAL
+      if (editFormData.rol === 'GERENTE_REGIONAL') {
+        updateData.regionIds = editFormData.regionIds.map(id => parseInt(id, 10));
+      }
+      
+      await api.put(`/auth/usuarios/${editUsuario.id}`, updateData);
+      setShowEditModal(false);
+      fetchUsuarios();
+      alert('✅ Usuario actualizado correctamente');
+    } catch (error: any) {
+      alert('❌ Error al actualizar usuario: ' + (error.response?.data?.error || 'Error desconocido'));
     }
   };
 
@@ -96,6 +160,24 @@ function UsuariosAdmin() {
         alert('❌ Error al eliminar usuario');
       }
     }
+  };
+
+  const openEditModal = async (usuario: Usuario) => {
+    setEditUsuario(usuario);
+    let regionIds: string[] = [];
+    
+    if (usuario.rol === 'GERENTE_REGIONAL') {
+      regionIds = await fetchRegionesPorUsuario(usuario.id);
+    }
+    
+    setEditFormData({
+      email: usuario.email,
+      nombre: usuario.nombre,
+      rol: usuario.rol,
+      password: '',
+      regionIds: regionIds,
+    });
+    setShowEditModal(true);
   };
 
   const columns = [
@@ -115,8 +197,8 @@ function UsuariosAdmin() {
       }
     },
     {
-      key: 'region',
-      label: 'Región',
+      key: 'regiones',
+      label: 'Regiones',
       render: (value: string) => value || '-'
     },
     {
@@ -125,14 +207,7 @@ function UsuariosAdmin() {
       render: (_: any, row: Usuario) => (
         <div className="flex gap-2">
           <button
-            onClick={() => {
-              setEditFormData({
-                email: row.email,
-                nombre: row.nombre,
-                rol: row.rol,
-              });
-              setShowEditModal(true);
-            }}
+            onClick={() => openEditModal(row)}
             className="text-indigo-600 hover:text-indigo-800"
           >
             ✏️ Editar
@@ -226,7 +301,7 @@ function UsuariosAdmin() {
             <label className="block text-sm font-medium text-slate-700 mb-1">Rol</label>
             <select
               value={formData.rol}
-              onChange={(e) => setFormData({ ...formData, rol: e.target.value, regionId: '' })}
+              onChange={(e) => setFormData({ ...formData, rol: e.target.value, regionIds: [] })}
               className="w-full px-3 py-2 border border-slate-200 rounded-lg"
             >
               <option value="GERENTE_REGIONAL">Gerente Regional</option>
@@ -235,21 +310,26 @@ function UsuariosAdmin() {
             </select>
           </div>
 
-          {/* Selector de región (solo para GERENTE_REGIONAL) */}
+          {/* Checkboxes para regiones (solo para GERENTE_REGIONAL) */}
           {formData.rol === 'GERENTE_REGIONAL' && (
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Región</label>
-              <select
-                value={formData.regionId}
-                onChange={(e) => setFormData({ ...formData, regionId: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-200 rounded-lg"
-                required
-              >
-                <option value="">Seleccionar región</option>
-                {regiones.map(r => (
-                  <option key={r.id} value={r.id}>{r.nombre}</option>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Regiones (puede seleccionar una o más)
+              </label>
+              <div className="space-y-2 border border-slate-200 rounded-lg p-3 bg-slate-50">
+                {regiones.map(region => (
+                  <label key={region.id} className="flex items-center gap-2 cursor-pointer hover:bg-slate-100 p-1 rounded">
+                    <input
+                      type="checkbox"
+                      value={region.id}
+                      checked={formData.regionIds.includes(region.id.toString())}
+                      onChange={(e) => handleRegionChange(e.target.value, e.target.checked)}
+                      className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
+                    />
+                    <span className="text-slate-700">{region.nombre}</span>
+                  </label>
                 ))}
-              </select>
+              </div>
             </div>
           )}
 
@@ -266,7 +346,7 @@ function UsuariosAdmin() {
 
       {/* Modal para editar usuario */}
       <Modal isOpen={showEditModal} onClose={() => setShowEditModal(false)} title="Editar Usuario" size="md">
-        <form onSubmit={(e) => { e.preventDefault(); alert('Función de edición pendiente'); }} className="space-y-4">
+        <form onSubmit={handleSaveEdit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Nombre</label>
             <input
@@ -288,10 +368,22 @@ function UsuariosAdmin() {
             />
           </div>
           <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Contraseña <span className="text-xs text-slate-400">(dejar en blanco para no cambiar)</span>
+            </label>
+            <input
+              type="password"
+              value={editFormData.password}
+              onChange={(e) => setEditFormData({ ...editFormData, password: e.target.value })}
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg"
+              placeholder="••••••••"
+            />
+          </div>
+          <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Rol</label>
             <select
               value={editFormData.rol}
-              onChange={(e) => setEditFormData({ ...editFormData, rol: e.target.value })}
+              onChange={(e) => setEditFormData({ ...editFormData, rol: e.target.value, regionIds: [] })}
               className="w-full px-3 py-2 border border-slate-200 rounded-lg"
             >
               <option value="GERENTE_REGIONAL">Gerente Regional</option>
@@ -299,6 +391,30 @@ function UsuariosAdmin() {
               <option value="AUXILIAR">Auxiliar</option>
             </select>
           </div>
+
+          {/* Checkboxes para regiones en edición (solo para GERENTE_REGIONAL) */}
+          {editFormData.rol === 'GERENTE_REGIONAL' && (
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Regiones asignadas
+              </label>
+              <div className="space-y-2 border border-slate-200 rounded-lg p-3 bg-slate-50">
+                {regiones.map(region => (
+                  <label key={region.id} className="flex items-center gap-2 cursor-pointer hover:bg-slate-100 p-1 rounded">
+                    <input
+                      type="checkbox"
+                      value={region.id}
+                      checked={editFormData.regionIds.includes(region.id.toString())}
+                      onChange={(e) => handleEditRegionChange(e.target.value, e.target.checked)}
+                      className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
+                    />
+                    <span className="text-slate-700">{region.nombre}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="flex justify-end gap-3 pt-4">
             <button type="button" onClick={() => setShowEditModal(false)} className="px-4 py-2 border border-slate-200 rounded-lg">
               Cancelar

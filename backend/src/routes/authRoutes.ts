@@ -7,7 +7,8 @@ import {
   editarUsuarioController,
   eliminarUsuarioController,
   listarRegionesController,
-  listarGerentesZonaPorRegionController
+  listarGerentesZonaPorRegionController,
+  listarRegionesPorUsuarioController
 } from '../controllers/usuarioController';
 import { autenticar, permitirRoles } from '../middleware/auth';
 
@@ -32,12 +33,13 @@ router.put('/usuarios/:id', autenticar, permitirRoles('ADMIN', 'GERENTE_REGIONAL
 router.delete('/usuarios/:id', autenticar, permitirRoles('ADMIN'), eliminarUsuarioController);
 
 // =====================================================
-// REGIONES (para selects en frontend)
+// REGIONES
 // =====================================================
 router.get('/regiones', autenticar, permitirRoles('ADMIN', 'GERENTE_REGIONAL'), listarRegionesController);
+router.get('/usuarios/:usuarioId/regiones', autenticar, listarRegionesPorUsuarioController);
 
 // =====================================================
-// GERENTES ZONA (para selector)
+// GERENTES ZONA
 // =====================================================
 router.get('/gerentes-zona', autenticar, listarGerentesZonaPorRegionController);
 
