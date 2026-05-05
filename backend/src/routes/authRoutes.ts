@@ -30,7 +30,7 @@ router.get('/me', autenticar, meController);
 router.get('/usuarios', autenticar, permitirRoles('ADMIN', 'GERENTE_REGIONAL'), listarUsuariosController);
 router.post('/registrar', autenticar, permitirRoles('ADMIN', 'GERENTE_REGIONAL'), registrarController);
 router.put('/usuarios/:id', autenticar, permitirRoles('ADMIN', 'GERENTE_REGIONAL'), editarUsuarioController);
-router.delete('/usuarios/:id', autenticar, permitirRoles('ADMIN'), eliminarUsuarioController);
+router.delete('/usuarios/:id', autenticar, permitirRoles('ADMIN', 'GERENTE_REGIONAL'), eliminarUsuarioController);
 
 // =====================================================
 // REGIONES
@@ -39,7 +39,7 @@ router.get('/regiones', autenticar, permitirRoles('ADMIN', 'GERENTE_REGIONAL'), 
 router.get('/usuarios/:usuarioId/regiones', autenticar, listarRegionesPorUsuarioController);
 
 // =====================================================
-// GERENTES ZONA
+// GERENTES ZONA (para selector)
 // =====================================================
 router.get('/gerentes-zona', autenticar, listarGerentesZonaPorRegionController);
 

@@ -8,34 +8,46 @@ import bcrypt from 'bcryptjs';
 // =====================================================
 export async function listarUsuariosController(req: Request, res: Response) {
   try {
-    const { rol } = req.query;
     const usuarioAuth = (req as any).usuario;
 
     let query = `
-      SELECT u.id, u.email, u.nombre, u.rol, u.activo, u."createdAt",
-             STRING_AGG(DISTINCT r.nombre, ', ') as regiones,
-             c.nombre as creado_por, c.id as creado_por_id
+      SELECT 
+        u.id, 
+        u.email, 
+        u.nombre, 
+        u.rol, 
+        u.activo, 
+        u."createdAt",
+        COALESCE(
+          (SELECT STRING_AGG(r.nombre, ', ')
+           FROM "UsuarioRegion" ur
+           JOIN "Region" r ON ur."regionId" = r.id
+           WHERE ur."usuarioId" = u.id
+          ), 
+          (SELECT r.nombre FROM "Region" r WHERE r.id = u."regionId")
+        ) as regiones,
+        c.nombre as creado_por, 
+        c.id as creado_por_id
       FROM "Usuario" u
-      LEFT JOIN "UsuarioRegion" ur ON u.id = ur."usuarioId"
-      LEFT JOIN "Region" r ON ur."regionId" = r.id
       LEFT JOIN "Usuario" c ON u."creadoPorId" = c.id
     `;
     const params: any[] = [];
 
-    if (rol) {
-      query += ` WHERE u.rol = $1`;
-      params.push(rol);
-    }
-
     if (usuarioAuth.rol === 'GERENTE_REGIONAL') {
-      query += params.length === 0 ? ' WHERE' : ' AND';
-      query += ` u."creadoPorId" = $${params.length + 1}`;
+      query += ` WHERE u."creadoPorId" = $1`;
       params.push(usuarioAuth.id);
     }
 
-    query += ` GROUP BY u.id, c.nombre, c.id ORDER BY u.id DESC`;
+    query += ` ORDER BY u.id DESC`;
 
     const result = await pool.query(query, params);
+    
+    // Log para debugging
+    console.log('📋 Usuarios encontrados:', result.rows.length);
+    result.rows.forEach(row => {
+      console.log(`  ${row.nombre} (${row.rol}): regiones = "${row.regiones}"`);
+    });
+    
     res.json(result.rows);
   } catch (error: any) {
     console.error('Error al listar usuarios:', error);
@@ -84,16 +96,31 @@ export async function listarGerentesZonaPorRegionController(req: Request, res: R
     const usuarioAuth = (req as any).usuario;
 
     let query = `
-      SELECT u.id, u.nombre, u.email, r.nombre as region
+      SELECT u.id, u.nombre, u.email, 
+             (
+               SELECT STRING_AGG(DISTINCT r.nombre, ', ')
+               FROM "UsuarioRegion" ur
+               JOIN "Region" r ON ur."regionId" = r.id
+               WHERE ur."usuarioId" = u.id
+             ) as region
       FROM "Usuario" u
-      LEFT JOIN "Region" r ON u."regionId" = r.id
       WHERE u.rol = 'GERENTE_ZONA' AND u.activo = true
     `;
     const params: any[] = [];
 
-    if (usuarioAuth.rol === 'GERENTE_REGIONAL' && usuarioAuth.regionId) {
-      query += ` AND u."regionId" = $1`;
-      params.push(usuarioAuth.regionId);
+    if (usuarioAuth.rol === 'GERENTE_REGIONAL') {
+      const regionesResult = await pool.query(
+        `SELECT "regionId" FROM "UsuarioRegion" WHERE "usuarioId" = $1`,
+        [usuarioAuth.id]
+      );
+      const regionIds = regionesResult.rows.map(r => r.regionId);
+      if (regionIds.length > 0) {
+        query += ` AND EXISTS (
+          SELECT 1 FROM "UsuarioRegion" ur2 
+          WHERE ur2."usuarioId" = u.id AND ur2."regionId" = ANY($1::int[])
+        )`;
+        params.push(regionIds);
+      }
     }
 
     query += ` ORDER BY u.nombre`;
@@ -107,30 +134,29 @@ export async function listarGerentesZonaPorRegionController(req: Request, res: R
 }
 
 // =====================================================
-// REGISTRAR USUARIO (con múltiples regiones)
+// REGISTRAR USUARIO
 // =====================================================
 export async function registrarController(req: Request, res: Response) {
   try {
     const { email, nombre, password, rol, regionIds } = req.body;
     const usuarioAuth = (req as any).usuario;
 
-    // =====================================================
-    // CONVERTIR regionIds DE STRING A NÚMERO
-    // =====================================================
-    let finalRegionIds: number[] = [];
-    if (regionIds && Array.isArray(regionIds)) {
-      finalRegionIds = regionIds.map(id => typeof id === 'string' ? parseInt(id, 10) : id);
-    }
+    console.log('📝 Registrando usuario:', { email, nombre, rol, regionIds, creadoPor: usuarioAuth.id });
 
-    console.log('📝 Registrando usuario:', { email, nombre, rol, finalRegionIds });
-
-    // Verificar si el email ya existe
     const existe = await pool.query('SELECT id FROM "Usuario" WHERE email = $1', [email]);
     if (existe.rows.length > 0) {
       return res.status(400).json({ error: 'El email ya está registrado' });
     }
 
-    // Validar permisos según el rol del usuario autenticado
+    let finalRegionIds: number[] = [];
+    if (regionIds && Array.isArray(regionIds)) {
+      finalRegionIds = regionIds.map(id => typeof id === 'string' ? parseInt(id, 10) : id);
+    }
+
+    // =====================================================
+    // VALIDAR PERMISOS SEGÚN EL ROL DEL CREADOR
+    // =====================================================
+    
     if (usuarioAuth.rol === 'ADMIN') {
       if (rol !== 'GERENTE_REGIONAL' && rol !== 'AUXILIAR') {
         return res.status(403).json({ error: 'No tienes permiso para crear este rol' });
@@ -143,16 +169,32 @@ export async function registrarController(req: Request, res: Response) {
       if (rol !== 'GERENTE_ZONA' && rol !== 'AUXILIAR') {
         return res.status(403).json({ error: 'No tienes permiso para crear este rol' });
       }
+      
+      const regionesGerente = await pool.query(
+        `SELECT "regionId" FROM "UsuarioRegion" WHERE "usuarioId" = $1`,
+        [usuarioAuth.id]
+      );
+      const regionesPermitidas = regionesGerente.rows.map(r => r.regionId);
+      
+      if (rol === 'GERENTE_ZONA') {
+        if (!finalRegionIds || finalRegionIds.length === 0) {
+          return res.status(400).json({ error: 'Debes seleccionar al menos una región para el GERENTE_ZONA' });
+        }
+        
+        for (const regionId of finalRegionIds) {
+          if (!regionesPermitidas.includes(regionId)) {
+            return res.status(403).json({ error: 'No puedes asignar una región que no te pertenece' });
+          }
+        }
+      }
     } 
     else {
       return res.status(403).json({ error: 'No tienes permiso para crear usuarios' });
     }
 
-    // Hashear contraseña
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
 
-    // Insertar usuario
     const result = await pool.query(
       `INSERT INTO "Usuario" (email, nombre, password, rol, "creadoPorId", activo)
        VALUES ($1, $2, $3, $4, $5, true)
@@ -162,13 +204,22 @@ export async function registrarController(req: Request, res: Response) {
 
     const usuarioId = result.rows[0].id;
 
-    // Insertar las regiones asociadas (solo para GERENTE_REGIONAL)
-    if (rol === 'GERENTE_REGIONAL' && finalRegionIds.length > 0) {
+    // Insertar regiones en UsuarioRegion
+    if (finalRegionIds.length > 0) {
       for (const regionId of finalRegionIds) {
         await pool.query(
           `INSERT INTO "UsuarioRegion" ("usuarioId", "regionId")
            VALUES ($1, $2) ON CONFLICT DO NOTHING`,
           [usuarioId, regionId]
+        );
+      }
+      
+      // Si es GERENTE_ZONA, actualizar también el campo regionId en Usuario
+      if (rol === 'GERENTE_ZONA') {
+        const primaryRegionId = finalRegionIds[0];
+        await pool.query(
+          `UPDATE "Usuario" SET "regionId" = $1 WHERE id = $2`,
+          [primaryRegionId, usuarioId]
         );
       }
     }
@@ -189,7 +240,7 @@ export async function registrarController(req: Request, res: Response) {
 export async function editarUsuarioController(req: Request, res: Response) {
   try {
     const id = parseInt(req.params.id as string);
-    const { email, nombre, rol, activo } = req.body;
+    const { email, nombre, rol, activo, password, regionIds } = req.body;
     const usuarioAuth = (req as any).usuario;
 
     if (usuarioAuth.rol === 'GERENTE_ZONA') {
@@ -208,6 +259,13 @@ export async function editarUsuarioController(req: Request, res: Response) {
     const params: any[] = [email, nombre, rol];
     let paramIndex = 4;
 
+    if (password && password.trim() !== '') {
+      const salt = await bcrypt.genSalt(10);
+      const passwordHash = await bcrypt.hash(password, salt);
+      query += `, password = $${paramIndex++}`;
+      params.push(passwordHash);
+    }
+
     if (usuarioAuth.rol === 'ADMIN' && activo !== undefined) {
       query += `, activo = $${paramIndex++}`;
       params.push(activo);
@@ -220,6 +278,24 @@ export async function editarUsuarioController(req: Request, res: Response) {
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+
+    if ((rol === 'GERENTE_REGIONAL' || rol === 'GERENTE_ZONA') && regionIds && Array.isArray(regionIds)) {
+      await pool.query('DELETE FROM "UsuarioRegion" WHERE "usuarioId" = $1', [id]);
+      
+      for (const regionId of regionIds) {
+        await pool.query(
+          `INSERT INTO "UsuarioRegion" ("usuarioId", "regionId") VALUES ($1, $2)`,
+          [id, regionId]
+        );
+      }
+      
+      if (rol === 'GERENTE_ZONA' && regionIds.length > 0) {
+        await pool.query(
+          `UPDATE "Usuario" SET "regionId" = $1 WHERE id = $2`,
+          [regionIds[0], id]
+        );
+      }
     }
 
     res.json({ mensaje: 'Usuario actualizado correctamente', usuario: result.rows[0] });
@@ -237,8 +313,18 @@ export async function eliminarUsuarioController(req: Request, res: Response) {
     const id = parseInt(req.params.id as string);
     const usuarioAuth = (req as any).usuario;
 
-    if (usuarioAuth.rol !== 'ADMIN') {
+    if (usuarioAuth.rol !== 'ADMIN' && usuarioAuth.rol !== 'GERENTE_REGIONAL') {
       return res.status(403).json({ error: 'No tienes permiso para eliminar usuarios' });
+    }
+
+    if (usuarioAuth.rol === 'GERENTE_REGIONAL') {
+      const check = await pool.query(
+        'SELECT id FROM "Usuario" WHERE id = $1 AND "creadoPorId" = $2',
+        [id, usuarioAuth.id]
+      );
+      if (check.rows.length === 0) {
+        return res.status(403).json({ error: 'No puedes eliminar este usuario' });
+      }
     }
 
     if (id === usuarioAuth.id) {

@@ -4,7 +4,7 @@ import LoadingSpinner from './LoadingSpinner';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  allowedRoles?: Array<'ADMIN' | 'GERENTE_ZONA' | 'AUXILIAR'>;
+  allowedRoles?: Array<'ADMIN' | 'GERENTE_REGIONAL' | 'GERENTE_ZONA' | 'AUXILIAR'>;
 }
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
@@ -21,7 +21,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to="/login" replace />;
   }
 
-  if (allowedRoles && usuario && !allowedRoles.includes(usuario.rol)) {
+  if (allowedRoles && usuario && !allowedRoles.includes(usuario.rol as any)) {
     return <Navigate to="/" replace />;
   }
 

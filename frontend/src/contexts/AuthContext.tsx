@@ -5,7 +5,7 @@ interface Usuario {
   id: number;
   email: string;
   nombre: string;
-  rol: 'ADMIN' | 'GERENTE_ZONA' | 'AUXILIAR';
+  rol: 'ADMIN' | 'GERENTE_REGIONAL' | 'GERENTE_ZONA' | 'AUXILIAR';
   gerenteZonaId?: number;
 }
 

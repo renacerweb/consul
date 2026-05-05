@@ -15,7 +15,6 @@ function Login() {
   const { login, usuario } = useAuth();
   const { showToast } = useToast();
 
-  // Cargar email recordado al montar el componente
   useEffect(() => {
     const remembered = localStorage.getItem('rememberedEmail');
     if (remembered) {
@@ -24,13 +23,16 @@ function Login() {
     }
   }, []);
 
-  // Redirigir según rol cuando el usuario está autenticado
+  // Redirigir según el rol cuando el usuario está autenticado
   useEffect(() => {
     if (usuario) {
       const redirectByRole = () => {
         switch (usuario.rol) {
           case 'ADMIN':
             navigate('/admin', { replace: true });
+            break;
+          case 'GERENTE_REGIONAL':
+            navigate('/gerente-regional', { replace: true });
             break;
           case 'GERENTE_ZONA':
             navigate('/gerente', { replace: true });
@@ -53,7 +55,6 @@ function Login() {
     try {
       await login(email, password);
       
-      // Remember me functionality
       if (rememberMe) {
         localStorage.setItem('rememberedEmail', email);
       } else {

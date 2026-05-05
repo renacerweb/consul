@@ -5,35 +5,29 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { AuthProvider } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
 
-/**
- * COMPONENTES CON LAZY LOADING
- * Los componentes se cargan solo cuando son necesarios,
- * mejorando el tiempo de carga inicial de la aplicación
- */
+// Lazy loading de páginas
 const Home = lazy(() => import('./pages/Home'));
 const Login = lazy(() => import('./pages/Login'));
+
+// Admin
 const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'));
 const AdminUsuarios = lazy(() => import('./pages/admin/Usuarios'));
 const AdminVendedoras = lazy(() => import('./pages/admin/Vendedoras'));
-const AuxiliarDashboard = lazy(() => import('./pages/auxiliar/Dashboard'));
-const GerenteDashboard = lazy(() => import('./pages/gerente/Dashboard'));
 const AdminMensajes = lazy(() => import('./pages/admin/Mensajes'));
-const GerenteMensajes = lazy(() => import('./pages/gerente/Mensajes'));
 const AdminSeguridad = lazy(() => import('./pages/admin/Seguridad'));
 
-/**
- * COMPONENTE PRINCIPAL DE LA APLICACIÓN
- * 
- * Implementa lazy loading para todas las rutas, mejorando la performance
- * y reduciendo el bundle inicial. Incluye Suspense para mostrar loading
- * mientras se cargan los componentes.
- * 
- * AHORA CON PROTECCIÓN DE RUTAS:
- * - Las rutas de admin solo accesibles para usuarios con rol ADMIN
- * - Las rutas de gerente solo accesibles para usuarios con rol GERENTE_ZONA
- * - Las rutas de auxiliar solo accesibles para usuarios con rol AUXILIAR
- * - Usuarios no autenticados son redirigidos a /login
- */
+// Gerente Regional
+const GerenteRegionalDashboard = lazy(() => import('./pages/gerente-regional/Dashboard'));
+const GerenteRegionalUsuarios = lazy(() => import('./pages/gerente-regional/Usuarios'));
+const GerenteRegionalVendedoras = lazy(() => import('./pages/gerente-regional/Vendedoras'));
+
+// Gerente Zona
+const GerenteDashboard = lazy(() => import('./pages/gerente/Dashboard'));
+const GerenteMensajes = lazy(() => import('./pages/gerente/Mensajes'));
+
+// Auxiliar
+const AuxiliarDashboard = lazy(() => import('./pages/auxiliar/Dashboard'));
+
 function App() {
   return (
     <AuthProvider>
@@ -45,7 +39,7 @@ function App() {
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
               
-              {/* Rutas protegidas - SOLO ADMIN */}
+              {/* Rutas ADMIN */}
               <Route path="/admin" element={
                 <ProtectedRoute allowedRoles={['ADMIN']}>
                   <AdminDashboard />
@@ -72,7 +66,23 @@ function App() {
                 </ProtectedRoute>
               } />
               
-              {/* Rutas protegidas - SOLO GERENTE_ZONA */}
+              {/* Rutas GERENTE_REGIONAL */}
+              <Route path="/gerente-regional" element={
+                <ProtectedRoute allowedRoles={['GERENTE_REGIONAL']}>
+                  <GerenteRegionalDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/gerente-regional/usuarios" element={
+                <ProtectedRoute allowedRoles={['GERENTE_REGIONAL']}>
+                  <GerenteRegionalUsuarios />
+                </ProtectedRoute>
+              } />
+              <Route path="/gerente-regional/vendedoras" element={
+                <ProtectedRoute allowedRoles={['GERENTE_REGIONAL']}>
+                  <GerenteRegionalVendedoras />
+                </ProtectedRoute>
+              } />
+              {/* Rutas GERENTE_ZONA */}
               <Route path="/gerente" element={
                 <ProtectedRoute allowedRoles={['GERENTE_ZONA']}>
                   <GerenteDashboard />
@@ -84,7 +94,7 @@ function App() {
                 </ProtectedRoute>
               } />
               
-              {/* Rutas protegidas - SOLO AUXILIAR */}
+              {/* Rutas AUXILIAR */}
               <Route path="/auxiliar" element={
                 <ProtectedRoute allowedRoles={['AUXILIAR']}>
                   <AuxiliarDashboard />
