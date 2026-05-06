@@ -109,11 +109,19 @@ app.get('/api/test', (req, res) => {
   res.json({ message: 'Ruta de prueba funcionando' })
 })
 
+// ==================== EXPORTAR APP PARA RENDER/VERCEL ====================
+// Esto es importante para despliegues en plataformas serverless
+export default app;
+
 // ==================== INICIAR SERVIDOR ====================
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`)
-  console.log(`📋 Health: http://localhost:${PORT}/api/health`)
-  console.log(`📋 Regiones: http://localhost:${PORT}/api/regiones`)
-  console.log(`📋 Vendedora: http://localhost:${PORT}/api/vendedora/buscar/12345678`)
-  console.log(`🔒 Modo: ${process.env.NODE_ENV || 'development'}`)
-})
+// Solo iniciar el servidor si este archivo se ejecuta directamente
+// (no cuando es importado por Render o Vercel)
+if (require.main === module) {
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`)
+    console.log(`📋 Health: http://localhost:${PORT}/api/health`)
+    console.log(`📋 Regiones: http://localhost:${PORT}/api/regiones`)
+    console.log(`📋 Vendedora: http://localhost:${PORT}/api/vendedora/buscar/12345678`)
+    console.log(`🔒 Modo: ${process.env.NODE_ENV || 'development'}`)
+  })
+}
