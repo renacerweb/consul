@@ -1,17 +1,16 @@
 ﻿import LayoutGerente from '../../components/LayoutGerente';
-import Dashboard from '../../components/Dashboard';
+import VendedorasList from '../../components/admin/VendedorasList';
 
-function GerenteDashboard() {
+function GerenteVendedoras() {
   return (
-    <LayoutGerente title="Dashboard Gerente">
-      <Dashboard
-        rol="GERENTE"
-        title="Dashboard Gerente"
-        canEdit={true}
+    <LayoutGerente title="Mis Vendedoras">
+      <VendedorasList
+        canEdit={false}
         canDelete={false}
+        canCreate={true}
       />
     </LayoutGerente>
   );
 }
 
-export default GerenteDashboard;
+export default GerenteVendedoras;
