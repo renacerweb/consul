@@ -42,7 +42,6 @@ export async function listarUsuariosController(req: Request, res: Response) {
 
     const result = await pool.query(query, params);
     
-    // Log para debugging
     console.log('📋 Usuarios encontrados:', result.rows.length);
     result.rows.forEach(row => {
       console.log(`  ${row.nombre} (${row.rol}): regiones = "${row.regiones}"`);
@@ -153,6 +152,8 @@ export async function registrarController(req: Request, res: Response) {
       finalRegionIds = regionIds.map(id => typeof id === 'string' ? parseInt(id, 10) : id);
     }
 
+    console.log(`🔍 [DEBUG] finalRegionIds después de parsear: ${JSON.stringify(finalRegionIds)}`);
+
     // =====================================================
     // VALIDAR PERMISOS SEGÚN EL ROL DEL CREADOR
     // =====================================================
@@ -175,6 +176,7 @@ export async function registrarController(req: Request, res: Response) {
         [usuarioAuth.id]
       );
       const regionesPermitidas = regionesGerente.rows.map(r => r.regionId);
+      console.log(`🔍 [DEBUG] Regiones permitidas del GR: ${JSON.stringify(regionesPermitidas)}`);
       
       if (rol === 'GERENTE_ZONA') {
         if (!finalRegionIds || finalRegionIds.length === 0) {
@@ -203,9 +205,16 @@ export async function registrarController(req: Request, res: Response) {
     );
 
     const usuarioId = result.rows[0].id;
+    console.log(`🔍 [DEBUG] Usuario creado con ID: ${usuarioId}`);
 
-    // Insertar regiones en UsuarioRegion
+    // =====================================================
+    // INSERTAR REGIONES EN UsuarioRegion Y ACTUALIZAR Usuario
+    // =====================================================
+    console.log(`🔍 [DEBUG] finalRegionIds.length = ${finalRegionIds.length}`);
+
     if (finalRegionIds.length > 0) {
+      console.log(`🔍 [DEBUG] Insertando regiones: ${JSON.stringify(finalRegionIds)}`);
+      
       for (const regionId of finalRegionIds) {
         await pool.query(
           `INSERT INTO "UsuarioRegion" ("usuarioId", "regionId")
@@ -214,14 +223,26 @@ export async function registrarController(req: Request, res: Response) {
         );
       }
       
-      // Si es GERENTE_ZONA, actualizar también el campo regionId en Usuario
-      if (rol === 'GERENTE_ZONA') {
-        const primaryRegionId = finalRegionIds[0];
-        await pool.query(
-          `UPDATE "Usuario" SET "regionId" = $1 WHERE id = $2`,
-          [primaryRegionId, usuarioId]
-        );
+      // =====================================================
+      // ACTUALIZAR TAMBIÉN EL CAMPO regionId EN LA TABLA Usuario
+      // =====================================================
+      console.log(`🔍 [DEBUG] finalRegionIds ANTES del UPDATE: ${JSON.stringify(finalRegionIds)}`);
+      
+      const primaryRegionId = finalRegionIds[0];
+      console.log(`🔍 [DEBUG] Actualizando regionId del usuario ${usuarioId} a ${primaryRegionId}`);
+      
+      const updateResult = await pool.query(
+        `UPDATE "Usuario" SET "regionId" = $1 WHERE id = $2 RETURNING id, "regionId"`,
+        [primaryRegionId, usuarioId]
+      );
+      
+      console.log(`✅ [DEBUG] Resultado UPDATE: ${JSON.stringify(updateResult.rows[0])}`);
+      
+      if (updateResult.rows[0]?.regionId !== primaryRegionId) {
+        console.error(`❌ [ERROR] El UPDATE no funcionó correctamente. Esperado: ${primaryRegionId}, Obtenido: ${updateResult.rows[0]?.regionId}`);
       }
+    } else {
+      console.log(`⚠️ [DEBUG] No hay regiones para insertar (finalRegionIds está vacío)`);
     }
 
     res.status(201).json({

@@ -99,6 +99,15 @@ function UsuariosGerenteRegional() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // =====================================================
+    // VALIDACIÓN: Si es GERENTE_ZONA, debe tener regiones seleccionadas
+    // =====================================================
+    if (formData.rol === 'GERENTE_ZONA' && formData.regionIds.length === 0) {
+      alert('❌ Debes seleccionar al menos una región para el Gerente de Zona');
+      return;
+    }
+    
     try {
       const regionIdsNumber = formData.regionIds.map(id => parseInt(id, 10));
       
@@ -122,6 +131,15 @@ function UsuariosGerenteRegional() {
   const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editUsuario) return;
+    
+    // =====================================================
+    // VALIDACIÓN: Si es GERENTE_ZONA, debe tener regiones seleccionadas
+    // =====================================================
+    if (editFormData.rol === 'GERENTE_ZONA' && editFormData.regionIds.length === 0) {
+      alert('❌ Debes seleccionar al menos una región para el Gerente de Zona');
+      return;
+    }
+    
     try {
       const updateData: any = {
         email: editFormData.email,
@@ -146,6 +164,18 @@ function UsuariosGerenteRegional() {
     }
   };
 
+  const handleDelete = async (id: number) => {
+    if (confirm('¿Eliminar este usuario?')) {
+      try {
+        await api.delete(`/auth/usuarios/${id}`);
+        fetchUsuarios();
+        alert('✅ Usuario eliminado');
+      } catch (error) {
+        alert('❌ Error al eliminar usuario');
+      }
+    }
+  };
+
   const openEditModal = async (usuario: Usuario) => {
     setEditUsuario(usuario);
     let regionIds: string[] = [];
@@ -162,18 +192,6 @@ function UsuariosGerenteRegional() {
       regionIds: regionIds,
     });
     setShowEditModal(true);
-  };
-
-  const handleDelete = async (id: number) => {
-    if (confirm('¿Eliminar este usuario?')) {
-      try {
-        await api.delete(`/auth/usuarios/${id}`);
-        fetchUsuarios();
-        alert('✅ Usuario eliminado');
-      } catch (error) {
-        alert('❌ Error al eliminar usuario');
-      }
-    }
   };
 
   const columns = [
@@ -301,10 +319,11 @@ function UsuariosGerenteRegional() {
             </select>
           </div>
 
+          {/* Selector de regiones para GERENTE_ZONA */}
           {formData.rol === 'GERENTE_ZONA' && (
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                Regiones (puede seleccionar una o más)
+                Regiones * (selecciona una o más)
               </label>
               <div className="space-y-2 border border-slate-200 rounded-lg p-3 bg-slate-50">
                 {regiones.map(region => (
@@ -320,6 +339,9 @@ function UsuariosGerenteRegional() {
                   </label>
                 ))}
               </div>
+              {formData.regionIds.length === 0 && (
+                <p className="text-xs text-red-500 mt-1">⚠️ Debes seleccionar al menos una región</p>
+              )}
             </div>
           )}
 
@@ -381,10 +403,11 @@ function UsuariosGerenteRegional() {
             </select>
           </div>
 
+          {/* Selector de regiones en edición */}
           {editFormData.rol === 'GERENTE_ZONA' && (
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                Regiones asignadas
+                Regiones asignadas *
               </label>
               <div className="space-y-2 border border-slate-200 rounded-lg p-3 bg-slate-50">
                 {regiones.map(region => (
@@ -400,6 +423,9 @@ function UsuariosGerenteRegional() {
                   </label>
                 ))}
               </div>
+              {editFormData.regionIds.length === 0 && (
+                <p className="text-xs text-red-500 mt-1">⚠️ Debes seleccionar al menos una región</p>
+              )}
             </div>
           )}
 
