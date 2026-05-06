@@ -43,7 +43,7 @@ export async function listarVendedorasController(req: Request, res: Response) {
         params.push(regionIds);
       }
     }
-    // GERENTE_ZONA: vendedoras que creó O reportó (a través del historial)
+    // GERENTE_ZONA: vendedoras que creó O reportó
     else if (usuario.rol === 'GERENTE_ZONA') {
       conditions.push(`(
         v."creadaPorId" = $${params.length + 1} OR 
@@ -79,9 +79,14 @@ export async function buscarVendedoraController(req: Request, res: Response) {
 
   try {
     const vendedoraResult = await pool.query(
-      `SELECT v.*, r.nombre as region_nombre
+      `SELECT v.*, 
+              r.nombre as region_nombre,
+              u.nombre as creada_por_nombre,
+              gz.nombre as gerente_zona_nombre
        FROM "Vendedora" v
        LEFT JOIN "Region" r ON v."regionId" = r.id
+       LEFT JOIN "Usuario" u ON v."creadaPorId" = u.id
+       LEFT JOIN "Usuario" gz ON v."gerenteZonaId" = gz.id
        WHERE v.cedula = $1`,
       [cedula]
     );
@@ -122,6 +127,8 @@ export async function buscarVendedoraController(req: Request, res: Response) {
       direccion: vendedora.direccion,
       reputacion: vendedora.reputacion,
       region_nombre: vendedora.region_nombre,
+      creada_por_nombre: vendedora.creada_por_nombre || 'Desconocido',
+      gerente_zona_nombre: vendedora.gerente_zona_nombre || 'No asignado',
       historial: historial.map(h => ({
         gerenteZonaNombre: h.gerente_zona_nombre,
         reputacion: h.reputacion,
@@ -218,7 +225,6 @@ export async function crearVendedoraController(req: Request, res: Response) {
       
       console.log(`📝 Vendedora existente encontrada (ID: ${vendedoraId}, Cédula: ${cedula}). Agregando reporte al historial.`);
       
-      // Verificar si el mismo gerente ya reportó esta vendedora recientemente
       const reporteReciente = await pool.query(
         `SELECT id FROM "HistorialVendedora" 
          WHERE "vendedoraId" = $1 AND "gerenteZonaId" = $2 
@@ -233,7 +239,6 @@ export async function crearVendedoraController(req: Request, res: Response) {
         });
       }
       
-      // Registrar solo en historial
       await pool.query(
         `INSERT INTO "HistorialVendedora" ("vendedoraId", "gerenteZonaId", reputacion)
          VALUES ($1, $2, $3)`,
@@ -262,7 +267,6 @@ export async function crearVendedoraController(req: Request, res: Response) {
       
       vendedoraId = result.rows[0].id;
       
-      // Registrar historial inicial
       await pool.query(
         `INSERT INTO "HistorialVendedora" ("vendedoraId", "gerenteZonaId", reputacion)
          VALUES ($1, $2, $3)`,
@@ -285,7 +289,7 @@ export async function crearVendedoraController(req: Request, res: Response) {
 }
 
 // =====================================================
-// ACTUALIZAR REPUTACIÓN DE VENDEDORA
+// ACTUALIZAR REPUTACIÓN DE VENDEDORA (con permisos para GR)
 // =====================================================
 export async function actualizarVendedoraController(req: Request, res: Response) {
   try {
@@ -301,10 +305,34 @@ export async function actualizarVendedoraController(req: Request, res: Response)
     const vendedora = vendedoraResult.rows[0];
 
     let puedeEditar = false;
-    if (usuario.rol === 'ADMIN') puedeEditar = true;
-    else if (usuario.rol === 'GERENTE_REGIONAL') puedeEditar = vendedora.regionId === usuario.regionId;
-    else if (usuario.rol === 'GERENTE_ZONA') puedeEditar = vendedora.creadaPorId === usuario.id;
-    else if (usuario.rol === 'AUXILIAR') puedeEditar = true;
+    
+    if (usuario.rol === 'ADMIN') {
+      puedeEditar = true;
+    } 
+    else if (usuario.rol === 'GERENTE_REGIONAL') {
+      // Obtener regiones del GERENTE_REGIONAL
+      const regionesResult = await pool.query(
+        `SELECT "regionId" FROM "UsuarioRegion" WHERE "usuarioId" = $1`,
+        [usuario.id]
+      );
+      const regionesPermitidas = regionesResult.rows.map(r => r.regionId);
+      
+      console.log('🔍 GR Editando - Regiones permitidas:', regionesPermitidas);
+      console.log('🔍 Vendedora - Región actual:', vendedora.regionId);
+      
+      // Si la vendedora no tiene región asignada, no puede editarla
+      if (!vendedora.regionId) {
+        return res.status(403).json({ error: 'Esta vendedora no tiene región asignada. Contacta al administrador.' });
+      }
+      
+      puedeEditar = regionesPermitidas.includes(vendedora.regionId);
+    }
+    else if (usuario.rol === 'GERENTE_ZONA') {
+      puedeEditar = vendedora.creadaPorId === usuario.id;
+    }
+    else if (usuario.rol === 'AUXILIAR') {
+      puedeEditar = true;
+    }
 
     if (!puedeEditar) {
       return res.status(403).json({ error: 'No tienes permiso para editar esta vendedora' });
@@ -325,7 +353,7 @@ export async function actualizarVendedoraController(req: Request, res: Response)
 }
 
 // =====================================================
-// ELIMINAR VENDEDORA
+// ELIMINAR VENDEDORA (con permisos para GR)
 // =====================================================
 export async function eliminarVendedoraController(req: Request, res: Response) {
   try {
@@ -340,8 +368,31 @@ export async function eliminarVendedoraController(req: Request, res: Response) {
     const vendedora = vendedoraResult.rows[0];
 
     let puedeEliminar = false;
-    if (usuario.rol === 'ADMIN') puedeEliminar = true;
-    else if (usuario.rol === 'GERENTE_REGIONAL') puedeEliminar = vendedora.regionId === usuario.regionId;
+    
+    if (usuario.rol === 'ADMIN') {
+      puedeEliminar = true;
+    }
+    else if (usuario.rol === 'GERENTE_REGIONAL') {
+      // Obtener regiones del GERENTE_REGIONAL
+      const regionesResult = await pool.query(
+        `SELECT "regionId" FROM "UsuarioRegion" WHERE "usuarioId" = $1`,
+        [usuario.id]
+      );
+      const regionesPermitidas = regionesResult.rows.map(r => r.regionId);
+      
+      console.log('🔍 GR Eliminando - Regiones permitidas:', regionesPermitidas);
+      console.log('🔍 Vendedora - Región actual:', vendedora.regionId);
+      
+      // Si la vendedora no tiene región asignada, no puede eliminarla
+      if (!vendedora.regionId) {
+        return res.status(403).json({ error: 'Esta vendedora no tiene región asignada. Contacta al administrador.' });
+      }
+      
+      puedeEliminar = regionesPermitidas.includes(vendedora.regionId);
+    }
+    else {
+      puedeEliminar = false;
+    }
 
     if (!puedeEliminar) {
       return res.status(403).json({ error: 'No tienes permiso para eliminar esta vendedora' });

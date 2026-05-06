@@ -2,7 +2,7 @@
 import api from '../../services/api';
 import DataTable from '../DataTable';
 import Modal from '../Modal';
-import { Search, Plus, Edit, Trash2 } from 'lucide-react';
+import { Search, Plus, Edit, Trash2, Eye, Phone, MapPin, Clock, User, CheckCircle, AlertCircle, XCircle } from 'lucide-react';
 
 interface Vendedora {
   id: number;
@@ -15,6 +15,14 @@ interface Vendedora {
   creada_por_nombre: string;
   gerente_zona_nombre: string;
   createdAt: string;
+  historial?: HistorialItem[];
+  regionId?: number;
+}
+
+interface HistorialItem {
+  gerenteZonaNombre: string;
+  reputacion: string;
+  fechaReporte: string;
 }
 
 interface Region {
@@ -39,6 +47,10 @@ function VendedorasList({ canEdit = true, canDelete = true, canCreate = true }: 
   const [filteredVendedoras, setFilteredVendedoras] = useState<Vendedora[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [selectedVendedora, setSelectedVendedora] = useState<Vendedora | null>(null);
+  const [editVendedora, setEditVendedora] = useState<Vendedora | null>(null);
   const [regiones, setRegiones] = useState<Region[]>([]);
   const [gerentesZona, setGerentesZona] = useState<GerenteZona[]>([]);
   const [filtroRegion, setFiltroRegion] = useState('');
@@ -52,6 +64,14 @@ function VendedorasList({ canEdit = true, canDelete = true, canCreate = true }: 
     direccion: '',
     regionId: '',
     gerenteZonaId: '',
+  });
+  const [editFormData, setEditFormData] = useState({
+    nombre: '',
+    cedula: '',
+    reputacion: '',
+    telefono: '',
+    direccion: '',
+    regionId: '',
   });
 
   useEffect(() => {
@@ -68,6 +88,16 @@ function VendedorasList({ canEdit = true, canDelete = true, canCreate = true }: 
       console.error('Error al cargar vendedoras:', error);
     } finally {
       setLoading(false);
+    }
+  }, []);
+
+  const fetchVendedoraDetalle = useCallback(async (id: number) => {
+    try {
+      const response = await api.get(`/vendedora/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error al cargar detalle de vendedora:', error);
+      return null;
     }
   }, []);
 
@@ -110,16 +140,47 @@ function VendedorasList({ canEdit = true, canDelete = true, canCreate = true }: 
     setFilteredVendedoras(filtered);
   }, [vendedoras, busqueda, filtroRegion]);
 
-  useEffect(() => {
-    if (filtroRegion) {
-      const region = regiones.find(r => r.nombre === filtroRegion);
-      if (region) {
-        fetchGerentesZona(region.id.toString());
-      }
-    } else {
-      fetchGerentesZona();
+  const handleVerDetalle = async (vendedora: Vendedora) => {
+    try {
+      const response = await api.get(`/vendedora/buscar/${vendedora.cedula}`);
+      setSelectedVendedora(response.data);
+      setShowDetailsModal(true);
+    } catch (error) {
+      console.error('Error al cargar detalle:', error);
+      setSelectedVendedora(vendedora);
+      setShowDetailsModal(true);
     }
-  }, [filtroRegion, regiones, fetchGerentesZona]);
+  };
+
+  const handleEditar = (vendedora: Vendedora) => {
+    setEditVendedora(vendedora);
+    setEditFormData({
+      nombre: vendedora.nombre,
+      cedula: vendedora.cedula,
+      reputacion: vendedora.reputacion,
+      telefono: vendedora.telefono || '',
+      direccion: vendedora.direccion || '',
+      regionId: vendedora.regionId?.toString() || '',
+    });
+    setShowEditModal(true);
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editVendedora) return;
+    
+    try {
+      await api.put(`/vendedora/${editVendedora.id}`, {
+        reputacion: editFormData.reputacion,
+      });
+      setShowEditModal(false);
+      fetchVendedoras();
+      alert('✅ Vendedora actualizada correctamente');
+    } catch (error: any) {
+      console.error('Error:', error);
+      alert('❌ Error al actualizar vendedora: ' + (error.response?.data?.error || 'Error desconocido'));
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -132,12 +193,10 @@ function VendedorasList({ canEdit = true, canDelete = true, canCreate = true }: 
         direccion: formData.direccion,
       };
       
-      // Solo enviar regionId si NO es GERENTE_ZONA
       if (usuario?.rol !== 'GERENTE_ZONA') {
         payload.regionId = parseInt(formData.regionId);
       }
       
-      // Enviar gerenteZonaId solo si es ADMIN o GERENTE_REGIONAL y seleccionó uno
       if ((usuario?.rol === 'ADMIN' || usuario?.rol === 'GERENTE_REGIONAL') && formData.gerenteZonaId) {
         payload.gerenteZonaId = parseInt(formData.gerenteZonaId);
       }
@@ -159,11 +218,29 @@ function VendedorasList({ canEdit = true, canDelete = true, canCreate = true }: 
         await api.delete(`/vendedora/${id}`);
         fetchVendedoras();
         alert('✅ Vendedora eliminada');
-      } catch (error) {
-        alert('❌ Error al eliminar vendedora');
+      } catch (error: any) {
+        console.error('Error:', error);
+        alert('❌ Error al eliminar vendedora: ' + (error.response?.data?.error || 'Error desconocido'));
       }
     }
   };
+
+  const getReputacionBadge = (reputacion: string) => {
+    const colors: Record<string, string> = {
+      EXCELENTE: 'bg-green-100 text-green-800',
+      BUENA: 'bg-blue-100 text-blue-800',
+      POSITIVA: 'bg-emerald-100 text-emerald-800',
+      REGULAR: 'bg-yellow-100 text-yellow-800',
+      OBSERVADA: 'bg-amber-100 text-amber-800',
+      MALA: 'bg-red-100 text-red-800',
+      RESTRINGIDA: 'bg-rose-100 text-rose-800',
+    };
+    return colors[reputacion] || 'bg-gray-100 text-gray-800';
+  };
+
+  const reputacionesOptions = [
+    'EXCELENTE', 'BUENA', 'REGULAR', 'MALA', 'POSITIVA', 'OBSERVADA', 'RESTRINGIDA'
+  ];
 
   const columns = [
     { key: 'nombre', label: 'Nombre' },
@@ -171,19 +248,11 @@ function VendedorasList({ canEdit = true, canDelete = true, canCreate = true }: 
     {
       key: 'reputacion',
       label: 'Reputación',
-      render: (value: string) => {
-        const colors: Record<string, string> = {
-          EXCELENTE: 'bg-green-100 text-green-800',
-          BUENA: 'bg-blue-100 text-blue-800',
-          REGULAR: 'bg-yellow-100 text-yellow-800',
-          MALA: 'bg-red-100 text-red-800',
-          POSITIVA: 'bg-emerald-100 text-emerald-800',
-          OBSERVADA: 'bg-amber-100 text-amber-800',
-          RESTRINGIDA: 'bg-rose-100 text-rose-800',
-        };
-        const color = colors[value] || 'bg-gray-100 text-gray-800';
-        return <span className={`px-2 py-1 rounded-full text-xs font-medium ${color}`}>{value}</span>;
-      }
+      render: (value: string) => (
+        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getReputacionBadge(value)}`}>
+          {value}
+        </span>
+      )
     },
     { key: 'region_nombre', label: 'Región' },
     { key: 'gerente_zona_nombre', label: 'Gerente Zona' },
@@ -192,13 +261,24 @@ function VendedorasList({ canEdit = true, canDelete = true, canCreate = true }: 
       label: 'Acciones',
       render: (_: any, row: Vendedora) => (
         <div className="flex gap-2">
+          <button 
+            onClick={() => handleVerDetalle(row)} 
+            className="text-blue-600 hover:text-blue-800"
+            title="Ver detalles"
+          >
+            <Eye className="w-4 h-4" />
+          </button>
           {canEdit && (
-            <button className="text-indigo-600 hover:text-indigo-800">
+            <button 
+              onClick={() => handleEditar(row)} 
+              className="text-indigo-600 hover:text-indigo-800"
+              title="Editar reputación"
+            >
               <Edit className="w-4 h-4" />
             </button>
           )}
           {canDelete && (
-            <button onClick={() => handleDelete(row.id)} className="text-rose-600 hover:text-rose-800">
+            <button onClick={() => handleDelete(row.id)} className="text-rose-600 hover:text-rose-800" title="Eliminar">
               <Trash2 className="w-4 h-4" />
             </button>
           )}
@@ -296,13 +376,9 @@ function VendedorasList({ canEdit = true, canDelete = true, canCreate = true }: 
               onChange={(e) => setFormData({ ...formData, reputacion: e.target.value })}
               className="w-full px-3 py-2 border border-slate-200 rounded-lg"
             >
-              <option value="EXCELENTE">Excelente</option>
-              <option value="BUENA">Buena</option>
-              <option value="REGULAR">Regular</option>
-              <option value="MALA">Mala</option>
-              <option value="POSITIVA">Positiva</option>
-              <option value="OBSERVADA">Observada</option>
-              <option value="RESTRINGIDA">Restringida</option>
+              {reputacionesOptions.map(opt => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
             </select>
           </div>
           <div>
@@ -324,7 +400,6 @@ function VendedorasList({ canEdit = true, canDelete = true, canCreate = true }: 
             />
           </div>
           
-          {/* Mostrar región solo si NO es GERENTE_ZONA */}
           {usuario?.rol !== 'GERENTE_ZONA' && (
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Región *</label>
@@ -342,14 +417,12 @@ function VendedorasList({ canEdit = true, canDelete = true, canCreate = true }: 
             </div>
           )}
           
-          {/* Mensaje para GERENTE_ZONA */}
           {usuario?.rol === 'GERENTE_ZONA' && (
             <div className="text-xs text-emerald-600 bg-emerald-50 p-2 rounded-lg">
               ℹ️ La vendedora será registrada en tu región y asignada automáticamente a tu cuenta.
             </div>
           )}
           
-          {/* Selector de gerente zona solo para ADMIN y GERENTE_REGIONAL */}
           {(usuario?.rol === 'ADMIN' || usuario?.rol === 'GERENTE_REGIONAL') && formData.regionId && gerentesZona.length > 0 && (
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Asignar a Gerente Zona (opcional)</label>
@@ -375,6 +448,128 @@ function VendedorasList({ canEdit = true, canDelete = true, canCreate = true }: 
             </button>
           </div>
         </form>
+      </Modal>
+
+      {/* Modal para editar reputación de vendedora */}
+      <Modal isOpen={showEditModal} onClose={() => setShowEditModal(false)} title="Editar Reputación de Vendedora" size="md">
+        <form onSubmit={handleUpdate} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Nombre</label>
+            <input
+              type="text"
+              value={editFormData.nombre}
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-slate-50"
+              disabled
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Cédula</label>
+            <input
+              type="text"
+              value={editFormData.cedula}
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-slate-50 font-mono"
+              disabled
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Reputación *</label>
+            <select
+              value={editFormData.reputacion}
+              onChange={(e) => setEditFormData({ ...editFormData, reputacion: e.target.value })}
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg"
+              required
+            >
+              {reputacionesOptions.map(opt => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex justify-end gap-3 pt-4">
+            <button type="button" onClick={() => setShowEditModal(false)} className="px-4 py-2 border border-slate-200 rounded-lg">
+              Cancelar
+            </button>
+            <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded-lg">
+              Guardar
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Modal para ver detalles de vendedora */}
+      <Modal isOpen={showDetailsModal} onClose={() => setShowDetailsModal(false)} title="Detalles de Vendedora" size="lg">
+        {selectedVendedora && (
+          <div className="space-y-4">
+            <div className="text-center border-b pb-4">
+              <div className="w-16 h-16 mx-auto bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full flex items-center justify-center mb-2">
+                <User className="w-8 h-8 text-indigo-500" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-800">{selectedVendedora.nombre}</h3>
+              <p className="text-sm text-indigo-600">📍 {selectedVendedora.region_nombre || 'Sin región'}</p>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm">
+                <span className="w-24 font-medium text-slate-600">Cédula:</span>
+                <span className="font-mono text-slate-800">{selectedVendedora.cedula}</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <Phone className="w-4 h-4 text-slate-400" />
+                <span className="w-24 font-medium text-slate-600">Teléfono:</span>
+                <span className="text-slate-800">{selectedVendedora.telefono || 'No registrado'}</span>
+              </div>
+              <div className="flex items-start gap-2 text-sm">
+                <MapPin className="w-4 h-4 text-slate-400 mt-0.5" />
+                <span className="w-24 font-medium text-slate-600">Dirección:</span>
+                <span className="text-slate-800 flex-1">{selectedVendedora.direccion || 'No registrada'}</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <span className="w-24 font-medium text-slate-600">Creada por:</span>
+                <span className="text-slate-800">{selectedVendedora.creada_por_nombre || 'Desconocido'}</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <span className="w-24 font-medium text-slate-600">Gerente Zona:</span>
+                <span className="text-slate-800">{selectedVendedora.gerente_zona_nombre || 'No asignado'}</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <span className="w-24 font-medium text-slate-600">Reputación actual:</span>
+                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getReputacionBadge(selectedVendedora.reputacion)}`}>
+                  {selectedVendedora.reputacion}
+                </span>
+              </div>
+            </div>
+
+            <div className="border-t pt-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Clock className="w-4 h-4 text-slate-500" />
+                <h4 className="font-semibold text-slate-700">
+                  Historial de reportes ({selectedVendedora.historial?.length || 0})
+                </h4>
+              </div>
+              
+              {selectedVendedora.historial && selectedVendedora.historial.length > 0 ? (
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {selectedVendedora.historial.map((h, idx) => (
+                    <div key={idx} className="pl-3 border-l-2 border-indigo-200 py-2">
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <p className="font-medium text-slate-700 text-sm">
+                          Reportado por: <span className="text-indigo-600">{h.gerenteZonaNombre || 'Gerente'}</span>
+                        </p>
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${getReputacionBadge(h.reputacion)}`}>
+                          {h.reputacion}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-400 mt-1">
+                        {new Date(h.fechaReporte).toLocaleDateString()}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-slate-400 italic">Sin historial de reportes</p>
+              )}
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );

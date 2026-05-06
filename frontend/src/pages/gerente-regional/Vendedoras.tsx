@@ -6,7 +6,7 @@ function GerenteRegionalVendedoras() {
     <LayoutGerenteRegional title="Gestión de Vendedoras">
       <VendedorasList
         canEdit={true}
-        canDelete={false}
+        canDelete={true}
         canCreate={true}
       />
     </LayoutGerenteRegional>
