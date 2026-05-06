@@ -5,6 +5,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { AuthProvider } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
 
+
 // Lazy loading de páginas
 const Home = lazy(() => import('./pages/Home'));
 const Login = lazy(() => import('./pages/Login'));
@@ -28,6 +29,7 @@ const GerenteVendedoras = lazy(() => import('./pages/gerente/Vendedoras'));
 
 // Auxiliar
 const AuxiliarDashboard = lazy(() => import('./pages/auxiliar/Dashboard'));
+const AuxiliarVendedoras = lazy(() => import('./pages/auxiliar/Vendedoras'));
 
 function App() {
   return (
@@ -105,6 +107,13 @@ function App() {
               <Route path="/auxiliar" element={
                 <ProtectedRoute allowedRoles={['AUXILIAR']}>
                   <AuxiliarDashboard />
+                </ProtectedRoute>
+                
+              } />
+
+              <Route path="/auxiliar/vendedoras" element={
+                <ProtectedRoute allowedRoles={['AUXILIAR']}>
+                  <AuxiliarVendedoras />
                 </ProtectedRoute>
               } />
             </Routes>
