@@ -12,10 +12,9 @@
 
 // ==================== CARGAR VARIABLES DE ENTORNO PRIMERO ====================
 import dotenv from 'dotenv';
-import path from 'path';
 
-// Cargar .env desde la raíz del backend
-dotenv.config({ path: path.join(__dirname, '../.env') });
+// Cargar .env (dotenv busca automáticamente en la raíz)
+dotenv.config();
 
 // Verificar que se cargó
 console.log('========================================');
