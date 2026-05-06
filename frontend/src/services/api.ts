@@ -1,8 +1,11 @@
 ﻿import axios from 'axios';
 import { Vendedora, CreateVendedoraRequest, Region } from '../types';
 
+// Usar variable de entorno para la URL base
+const API_URL = import.meta.env.VITE_API_URL || '/api';
+
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: API_URL,
   headers: { 'Content-Type': 'application/json' },
 });
 
