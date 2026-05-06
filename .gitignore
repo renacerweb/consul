@@ -5,8 +5,13 @@ frontend/node_modules/
 
 # Variables de entorno
 .env
+.env.local
+.env.*.local
+.env.production
+.env.development
 backend/.env
 frontend/.env
+src/.env
 
 # Builds
 dist/
@@ -26,6 +31,8 @@ prisma/dev.db
 # IDE
 .vscode/
 .idea/
+*.swp
+*.swo
 
 # Archivos temporales
 *.log
@@ -34,3 +41,5 @@ t *
 tatus
 *.tmp
 temp-*
+.DS_Store
+Thumbs.db

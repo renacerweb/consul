@@ -1,34 +1,16 @@
-// backend/src/utils/jwt.ts
 import jwt from 'jsonwebtoken';
 
-const SECRET = process.env.JWT_SECRET || 'mi-secreto-super-seguro-cambiar-en-produccion';
+const SECRET = process.env.JWT_SECRET || 'renacer_checkin_2026_secret_key';
 
 export interface UsuarioPayload {
   id: number;
   email: string;
   rol: string;
   regionId?: number;
-  creadoPorId?: number;
 }
 
-export function generarToken(usuario: {
-  id: number;
-  email: string;
-  rol: string;
-  regionId?: number;
-  creadoPorId?: number;
-}) {
-  return jwt.sign(
-    { 
-      id: usuario.id, 
-      email: usuario.email, 
-      rol: usuario.rol,
-      regionId: usuario.regionId,
-      creadoPorId: usuario.creadoPorId
-    },
-    SECRET,
-    { expiresIn: '24h' }
-  );
+export function generarToken(usuario: UsuarioPayload) {
+  return jwt.sign(usuario, SECRET, { expiresIn: '24h' });
 }
 
 export function verificarToken(token: string): UsuarioPayload {
