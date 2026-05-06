@@ -1,9 +1,13 @@
 import { Pool } from 'pg';
 import dotenv from 'dotenv';
+import path from 'path';
 
-dotenv.config();
+// Cargar .env desde la raíz del backend
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 const DATABASE_URL = process.env.DATABASE_URL;
+
+console.log('DB - DATABASE_URL cargada:', DATABASE_URL ? '✅ Sí' : '❌ No');
 
 if (!DATABASE_URL) {
   console.error('ERROR: DATABASE_URL no está definida');
@@ -19,11 +23,11 @@ const pool = new Pool({
 });
 
 pool.on('connect', () => {
-  console.log('Conexión a Supabase establecida');
+  console.log('✅ Conexión a Supabase establecida');
 });
 
 pool.on('error', (err) => {
-  console.error('Error de conexión:', err.message);
+  console.error('❌ Error de conexión:', err.message);
 });
 
 export default pool;
