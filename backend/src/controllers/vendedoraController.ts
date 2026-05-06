@@ -16,6 +16,8 @@ export async function listarVendedorasController(req: Request, res: Response) {
         v.nombre,
         v.cedula,
         v.reputacion,
+        v.telefono,
+        v.direccion,
         v."createdAt",
         r.nombre as region_nombre,
         u.nombre as creada_por_nombre,
@@ -25,7 +27,6 @@ export async function listarVendedorasController(req: Request, res: Response) {
       LEFT JOIN "Usuario" u ON v."creadaPorId" = u.id
       LEFT JOIN "Usuario" gz ON v."gerenteZonaId" = gz.id
     `;
-    // ... resto del código
     const params: any[] = [];
     const conditions: string[] = [];
 
@@ -42,9 +43,15 @@ export async function listarVendedorasController(req: Request, res: Response) {
         params.push(regionIds);
       }
     }
-    // GERENTE_ZONA: solo vendedoras que él creó
+    // GERENTE_ZONA: vendedoras que creó O reportó (a través del historial)
     else if (usuario.rol === 'GERENTE_ZONA') {
-      conditions.push(`v."creadaPorId" = $${params.length + 1}`);
+      conditions.push(`(
+        v."creadaPorId" = $${params.length + 1} OR 
+        EXISTS (
+          SELECT 1 FROM "HistorialVendedora" h 
+          WHERE h."vendedoraId" = v.id AND h."gerenteZonaId" = $${params.length + 1}
+        )
+      )`);
       params.push(usuario.id);
     }
 
@@ -108,7 +115,13 @@ export async function buscarVendedoraController(req: Request, res: Response) {
     }
 
     res.json({
-      ...vendedora,
+      id: vendedora.id,
+      nombre: vendedora.nombre,
+      cedula: vendedora.cedula,
+      telefono: vendedora.telefono,
+      direccion: vendedora.direccion,
+      reputacion: vendedora.reputacion,
+      region_nombre: vendedora.region_nombre,
       historial: historial.map(h => ({
         gerenteZonaNombre: h.gerente_zona_nombre,
         reputacion: h.reputacion,
@@ -122,27 +135,12 @@ export async function buscarVendedoraController(req: Request, res: Response) {
 }
 
 // =====================================================
-// CREAR VENDEDORA (con asignación automática para GERENTE_ZONA)
+// CREAR VENDEDORA O AGREGAR REPORTE A EXISTENTE
 // =====================================================
 export async function crearVendedoraController(req: Request, res: Response) {
   try {
     const { nombre, cedula, reputacion, telefono, direccion, regionId, gerenteZonaId } = req.body;
     const usuario = (req as any).usuario;
-    // =====================================================
-    // LOG 1: Ver qué usuario está autenticado
-    // =====================================================
-    console.log('========================================');
-    console.log('📝 [LOG 1] Usuario autenticado:');
-    console.log('  ID:', usuario.id);
-    console.log('  Rol:', usuario.rol);
-    console.log('  RegionId del token:', usuario.regionId);
-    console.log('========================================');
-
-    // Verificar que la cédula no exista
-    const existe = await pool.query('SELECT id FROM "Vendedora" WHERE cedula = $1', [cedula]);
-    if (existe.rows.length > 0) {
-      return res.status(400).json({ error: 'Ya existe una vendedora con esta cédula' });
-    }
 
     let finalRegionId = regionId;
     let finalGerenteZonaId = gerenteZonaId || null;
@@ -153,7 +151,6 @@ export async function crearVendedoraController(req: Request, res: Response) {
     // =====================================================
 
     if (usuario.rol === 'GERENTE_REGIONAL') {
-      // Obtener regiones del gerente regional
       const regionesResult = await pool.query(
         `SELECT "regionId" FROM "UsuarioRegion" WHERE "usuarioId" = $1`,
         [usuario.id]
@@ -178,15 +175,12 @@ export async function crearVendedoraController(req: Request, res: Response) {
       }
     } 
     else if (usuario.rol === 'GERENTE_ZONA') {
-      // =====================================================
-      // GERENTE_ZONA: asignación automática
-      // =====================================================
       const gerenteResult = await pool.query(
         `SELECT "regionId" FROM "Usuario" WHERE id = $1`,
         [usuario.id]
       );
-      finalRegionId = gerenteResult.rows[0].regionId;
-      finalGerenteZonaId = usuario.id; // Forzar a su propio ID
+      finalRegionId = gerenteResult.rows[0]?.regionId;
+      finalGerenteZonaId = usuario.id;
       
       if (!finalRegionId) {
         return res.status(400).json({ error: 'Tu región no está configurada' });
@@ -206,26 +200,86 @@ export async function crearVendedoraController(req: Request, res: Response) {
       return res.status(403).json({ error: 'No tienes permiso para registrar vendedoras' });
     }
 
-    // Insertar vendedora
-    const result = await pool.query(
-      `INSERT INTO "Vendedora" (nombre, cedula, reputacion, telefono, direccion, "regionId", "creadaPorId", "gerenteZonaId")
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-       RETURNING *`,
-      [nombre, cedula, reputacion || 'BUENA', telefono || null, direccion || null, finalRegionId, creadaPorId, finalGerenteZonaId]
+    // =====================================================
+    // VERIFICAR SI LA VENDEDORA YA EXISTE POR CÉDULA
+    // =====================================================
+    const vendedoraExistente = await pool.query(
+      'SELECT id, nombre, cedula, telefono, direccion FROM "Vendedora" WHERE cedula = $1',
+      [cedula]
     );
 
-    // Registrar historial inicial
-    await pool.query(
-      `INSERT INTO "HistorialVendedora" ("vendedoraId", "gerenteZonaId", reputacion)
-       VALUES ($1, $2, $3)`,
-      [result.rows[0].id, finalGerenteZonaId, reputacion || 'BUENA']
-    );
+    let vendedoraId: number;
 
-    console.log(`✅ Vendedora creada: ${nombre} (${cedula}) - Región: ${finalRegionId} - Gerente Zona: ${finalGerenteZonaId}`);
-
-    res.status(201).json({ mensaje: 'Vendedora registrada correctamente', vendedora: result.rows[0] });
+    if (vendedoraExistente.rows.length > 0) {
+      // =====================================================
+      // CASO 1: La vendedora ya existe → Solo agregar historial
+      // =====================================================
+      vendedoraId = vendedoraExistente.rows[0].id;
+      
+      console.log(`📝 Vendedora existente encontrada (ID: ${vendedoraId}, Cédula: ${cedula}). Agregando reporte al historial.`);
+      
+      // Verificar si el mismo gerente ya reportó esta vendedora recientemente
+      const reporteReciente = await pool.query(
+        `SELECT id FROM "HistorialVendedora" 
+         WHERE "vendedoraId" = $1 AND "gerenteZonaId" = $2 
+         AND "fechaReporte" > NOW() - INTERVAL '10 seconds'`,
+        [vendedoraId, finalGerenteZonaId]
+      );
+      
+      if (reporteReciente.rows.length > 0) {
+        return res.status(409).json({ 
+          mensaje: 'Ya has reportado esta vendedora recientemente. Espera unos segundos.',
+          tipo: 'reporte_duplicado'
+        });
+      }
+      
+      // Registrar solo en historial
+      await pool.query(
+        `INSERT INTO "HistorialVendedora" ("vendedoraId", "gerenteZonaId", reputacion)
+         VALUES ($1, $2, $3)`,
+        [vendedoraId, finalGerenteZonaId, reputacion || 'BUENA']
+      );
+      
+      res.status(200).json({ 
+        mensaje: 'Reporte agregado al historial de la vendedora',
+        vendedora: vendedoraExistente.rows[0],
+        nuevoReporte: true,
+        id: vendedoraId
+      });
+      
+    } else {
+      // =====================================================
+      // CASO 2: La vendedora NO existe → Crear nueva
+      // =====================================================
+      console.log(`📝 Creando nueva vendedora: ${nombre} (${cedula})`);
+      
+      const result = await pool.query(
+        `INSERT INTO "Vendedora" (nombre, cedula, reputacion, telefono, direccion, "regionId", "creadaPorId", "gerenteZonaId")
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+         RETURNING *`,
+        [nombre, cedula, reputacion || 'BUENA', telefono || null, direccion || null, finalRegionId, creadaPorId, finalGerenteZonaId]
+      );
+      
+      vendedoraId = result.rows[0].id;
+      
+      // Registrar historial inicial
+      await pool.query(
+        `INSERT INTO "HistorialVendedora" ("vendedoraId", "gerenteZonaId", reputacion)
+         VALUES ($1, $2, $3)`,
+        [vendedoraId, finalGerenteZonaId, reputacion || 'BUENA']
+      );
+      
+      console.log(`✅ Vendedora creada exitosamente (ID: ${vendedoraId})`);
+      
+      res.status(201).json({ 
+        mensaje: 'Vendedora registrada correctamente',
+        vendedora: result.rows[0],
+        nuevoReporte: false
+      });
+    }
+    
   } catch (error: any) {
-    console.error('Error al crear vendedora:', error);
+    console.error('❌ Error al procesar vendedora:', error);
     res.status(500).json({ error: error.message });
   }
 }
