@@ -26,9 +26,8 @@ export async function login(email: string, password: string) {
     id: usuario.id,
     email: usuario.email,
     rol: usuario.rol,
-    regionId: usuario.regionId,
-    creadoPorId: usuario.creadoPorId
-  })
+    regionId: usuario.regionId
+  });
 
   return {
     token,

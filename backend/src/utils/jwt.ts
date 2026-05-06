@@ -7,6 +7,7 @@ export interface UsuarioPayload {
   email: string;
   rol: string;
   regionId?: number;
+  creadoPorId?: number;
 }
 
 export function generarToken(usuario: UsuarioPayload) {
