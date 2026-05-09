@@ -1,5 +1,4 @@
-﻿// backend/src/controllers/vendedoraController.ts
-import { Request, Response } from 'express';
+﻿import { Request, Response } from 'express';
 import pool from '../db';
 import { registrarConsultaAuditoria } from '../middleware/security';
 
@@ -403,5 +402,61 @@ export async function eliminarVendedoraController(req: Request, res: Response) {
   } catch (error: any) {
     console.error('Error al eliminar vendedora:', error);
     res.status(500).json({ error: error.message });
+  }
+}
+
+// =====================================================
+// NUEVO: REPORTE DE VENDEDORAS CON REPUTACIÓN MALA O DUDOSA
+// =====================================================
+export async function obtenerReporteMalasReputaciones(req: Request, res: Response) {
+  try {
+    const usuario = (req as any).usuario;
+    const { rol, id: usuarioId } = usuario;
+
+    let query = `
+      SELECT 
+        v.id, 
+        v.nombre, 
+        v.cedula, 
+        v.telefono, 
+        v.direccion,
+        v.reputacion,
+        r.nombre as region
+      FROM "Vendedora" v
+      LEFT JOIN "Region" r ON v."regionId" = r.id
+      WHERE v.reputacion IN ('MALA', 'DUDOSA')
+    `;
+    const params: any[] = [];
+    let paramIndex = 1;
+
+    if (rol === 'GERENTE_REGIONAL') {
+      // Obtener regiones que gestiona el GR
+      const regionesQuery = await pool.query(
+        `SELECT "regionId" FROM "UsuarioRegion" WHERE "usuarioId" = $1`,
+        [usuarioId]
+      );
+      const regionesIds = regionesQuery.rows.map(row => row.regionId);
+      if (regionesIds.length === 0) {
+        return res.json([]);
+      }
+      query += ` AND v."regionId" = ANY($${paramIndex}::int[])`;
+      params.push(regionesIds);
+      paramIndex++;
+    } else if (rol === 'AUXILIAR') {
+      // AUXILIAR: solo ve vendedoras que él mismo creó
+      query += ` AND v."creadaPorId" = $${paramIndex}`;
+      params.push(usuarioId);
+      paramIndex++;
+    } else {
+      return res.status(403).json({ error: 'No autorizado' });
+    }
+
+    query += ` ORDER BY v.reputacion DESC, v.nombre ASC`;
+
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (error: any) {
+    console.error('Error en reporte de malas reputaciones:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
   }
 }

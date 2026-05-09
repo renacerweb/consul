@@ -17,7 +17,9 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Resto del código igual...
+// =====================================================
+// SERVICIOS DE VENDEDORAS
+// =====================================================
 export const vendedoraService = {
   listar: (params?: { regionId?: number; gerenteZonaId?: number }) =>
     api.get<Vendedora[]>('/vendedora', { params }),
@@ -33,8 +35,15 @@ export const vendedoraService = {
   
   eliminar: (id: number) => 
     api.delete(`/vendedora/${id}`),
+
+  // NUEVO: obtener reporte de vendedoras con reputación mala o dudosa
+  obtenerReporteMalas: () =>
+    api.get<Vendedora[]>('/vendedora/reporte/malas'),
 };
 
+// =====================================================
+// SERVICIOS DE REGIONES
+// =====================================================
 export const regionService = {
   listar: () => 
     api.get<Region[]>('/regiones'),
