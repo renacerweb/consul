@@ -5,7 +5,7 @@ function GerenteVendedoras() {
   return (
     <LayoutGerente title="Mis Vendedoras">
       <VendedorasList
-        canEdit={true}
+        canEdit={false}
         canDelete={false}
         canCreate={true}
       />
