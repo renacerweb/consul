@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import LayoutGerenteRegional from '../../components/LayoutGerenteRegional';
 import VendedorasList from '../../components/admin/VendedorasList';
-import { ReporteMalasReputaciones } from '../../components/ReporteMalasReputaciones';
+import { ReporteVendedoras } from '../../components/ReporteVendedoras';
 
 function GerenteRegionalVendedoras() {
   const [showReporte, setShowReporte] = useState(false);
@@ -14,7 +14,7 @@ function GerenteRegionalVendedoras() {
           onClick={() => setShowReporte(true)}
           className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
         >
-          📊 Reporte de Malas Reputaciones
+          📊 Reporte de Vendedoras
         </button>
       </div>
       <VendedorasList
@@ -22,7 +22,7 @@ function GerenteRegionalVendedoras() {
         canDelete={true}
         canCreate={true}
       />
-      <ReporteMalasReputaciones
+      <ReporteVendedoras
         isOpen={showReporte}
         onClose={() => setShowReporte(false)}
       />

@@ -6,12 +6,12 @@ import {
   crearVendedoraController,
   actualizarVendedoraController,
   eliminarVendedoraController,
-  obtenerReporteMalasReputaciones,   // nueva función
+  obtenerReportePorReputaciones,   // nueva
 } from '../controllers/vendedoraController';
 
 const router = Router();
 
-// Ruta pública (sin autenticación)
+// Ruta pública
 router.get('/buscar/:cedula', buscarVendedoraController);
 
 // Rutas protegidas
@@ -20,12 +20,12 @@ router.post('/', autenticar, permitirRoles('ADMIN', 'GERENTE_REGIONAL', 'GERENTE
 router.put('/:id', autenticar, permitirRoles('ADMIN', 'GERENTE_REGIONAL', 'GERENTE_ZONA', 'AUXILIAR'), actualizarVendedoraController);
 router.delete('/:id', autenticar, permitirRoles('ADMIN', 'GERENTE_REGIONAL'), eliminarVendedoraController);
 
-// Nueva ruta para reporte de malas reputaciones (solo GR y AUXILIAR)
+// Nueva ruta para reporte con filtros (solo GERENTE_REGIONAL y AUXILIAR)
 router.get(
-  '/reporte/malas',
+  '/reporte',
   autenticar,
   permitirRoles('GERENTE_REGIONAL', 'AUXILIAR'),
-  obtenerReporteMalasReputaciones
+  obtenerReportePorReputaciones
 );
 
 export default router;

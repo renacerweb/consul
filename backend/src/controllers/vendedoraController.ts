@@ -29,8 +29,6 @@ export async function listarVendedorasController(req: Request, res: Response) {
     const params: any[] = [];
     const conditions: string[] = [];
 
-    // ADMIN: ve todo
-    // GERENTE_REGIONAL: solo vendedoras de sus regiones
     if (usuario.rol === 'GERENTE_REGIONAL') {
       const regionesResult = await pool.query(
         `SELECT "regionId" FROM "UsuarioRegion" WHERE "usuarioId" = $1`,
@@ -42,7 +40,6 @@ export async function listarVendedorasController(req: Request, res: Response) {
         params.push(regionIds);
       }
     }
-    // GERENTE_ZONA: vendedoras que creó O reportó
     else if (usuario.rol === 'GERENTE_ZONA') {
       conditions.push(`(
         v."creadaPorId" = $${params.length + 1} OR 
@@ -152,10 +149,6 @@ export async function crearVendedoraController(req: Request, res: Response) {
     let finalGerenteZonaId = gerenteZonaId || null;
     let creadaPorId = usuario.id;
 
-    // =====================================================
-    // LÓGICA SEGÚN EL ROL
-    // =====================================================
-
     if (usuario.rol === 'GERENTE_REGIONAL') {
       const regionesResult = await pool.query(
         `SELECT "regionId" FROM "UsuarioRegion" WHERE "usuarioId" = $1`,
@@ -206,9 +199,6 @@ export async function crearVendedoraController(req: Request, res: Response) {
       return res.status(403).json({ error: 'No tienes permiso para registrar vendedoras' });
     }
 
-    // =====================================================
-    // VERIFICAR SI LA VENDEDORA YA EXISTE POR CÉDULA
-    // =====================================================
     const vendedoraExistente = await pool.query(
       'SELECT id, nombre, cedula, telefono, direccion FROM "Vendedora" WHERE cedula = $1',
       [cedula]
@@ -217,9 +207,6 @@ export async function crearVendedoraController(req: Request, res: Response) {
     let vendedoraId: number;
 
     if (vendedoraExistente.rows.length > 0) {
-      // =====================================================
-      // CASO 1: La vendedora ya existe → Solo agregar historial
-      // =====================================================
       vendedoraId = vendedoraExistente.rows[0].id;
       
       console.log(`📝 Vendedora existente encontrada (ID: ${vendedoraId}, Cédula: ${cedula}). Agregando reporte al historial.`);
@@ -252,9 +239,6 @@ export async function crearVendedoraController(req: Request, res: Response) {
       });
       
     } else {
-      // =====================================================
-      // CASO 2: La vendedora NO existe → Crear nueva
-      // =====================================================
       console.log(`📝 Creando nueva vendedora: ${nombre} (${cedula})`);
       
       const result = await pool.query(
@@ -288,7 +272,7 @@ export async function crearVendedoraController(req: Request, res: Response) {
 }
 
 // =====================================================
-// ACTUALIZAR REPUTACIÓN DE VENDEDORA (con permisos para GR)
+// ACTUALIZAR REPUTACIÓN
 // =====================================================
 export async function actualizarVendedoraController(req: Request, res: Response) {
   try {
@@ -309,21 +293,14 @@ export async function actualizarVendedoraController(req: Request, res: Response)
       puedeEditar = true;
     } 
     else if (usuario.rol === 'GERENTE_REGIONAL') {
-      // Obtener regiones del GERENTE_REGIONAL
       const regionesResult = await pool.query(
         `SELECT "regionId" FROM "UsuarioRegion" WHERE "usuarioId" = $1`,
         [usuario.id]
       );
       const regionesPermitidas = regionesResult.rows.map(r => r.regionId);
-      
-      console.log('🔍 GR Editando - Regiones permitidas:', regionesPermitidas);
-      console.log('🔍 Vendedora - Región actual:', vendedora.regionId);
-      
-      // Si la vendedora no tiene región asignada, no puede editarla
       if (!vendedora.regionId) {
         return res.status(403).json({ error: 'Esta vendedora no tiene región asignada. Contacta al administrador.' });
       }
-      
       puedeEditar = regionesPermitidas.includes(vendedora.regionId);
     }
     else if (usuario.rol === 'GERENTE_ZONA') {
@@ -352,7 +329,7 @@ export async function actualizarVendedoraController(req: Request, res: Response)
 }
 
 // =====================================================
-// ELIMINAR VENDEDORA (con permisos para GR)
+// ELIMINAR VENDEDORA
 // =====================================================
 export async function eliminarVendedoraController(req: Request, res: Response) {
   try {
@@ -372,21 +349,14 @@ export async function eliminarVendedoraController(req: Request, res: Response) {
       puedeEliminar = true;
     }
     else if (usuario.rol === 'GERENTE_REGIONAL') {
-      // Obtener regiones del GERENTE_REGIONAL
       const regionesResult = await pool.query(
         `SELECT "regionId" FROM "UsuarioRegion" WHERE "usuarioId" = $1`,
         [usuario.id]
       );
       const regionesPermitidas = regionesResult.rows.map(r => r.regionId);
-      
-      console.log('🔍 GR Eliminando - Regiones permitidas:', regionesPermitidas);
-      console.log('🔍 Vendedora - Región actual:', vendedora.regionId);
-      
-      // Si la vendedora no tiene región asignada, no puede eliminarla
       if (!vendedora.regionId) {
         return res.status(403).json({ error: 'Esta vendedora no tiene región asignada. Contacta al administrador.' });
       }
-      
       puedeEliminar = regionesPermitidas.includes(vendedora.regionId);
     }
     else {
@@ -406,12 +376,18 @@ export async function eliminarVendedoraController(req: Request, res: Response) {
 }
 
 // =====================================================
-// NUEVO: REPORTE DE VENDEDORAS CON REPUTACIÓN MALA O DUDOSA
+// NUEVO: REPORTE CON FILTRO MÚLTIPLE DE REPUTACIONES
 // =====================================================
-export async function obtenerReporteMalasReputaciones(req: Request, res: Response) {
+export async function obtenerReportePorReputaciones(req: Request, res: Response) {
   try {
     const usuario = (req as any).usuario;
     const { rol, id: usuarioId } = usuario;
+    const { reputaciones } = req.query; // ejemplo: "MALA,DUDOSA"
+
+    let reputacionesArray: string[] = [];
+    if (reputaciones && typeof reputaciones === 'string') {
+      reputacionesArray = reputaciones.split(',').map(r => r.trim().toUpperCase());
+    }
 
     let query = `
       SELECT 
@@ -424,39 +400,42 @@ export async function obtenerReporteMalasReputaciones(req: Request, res: Respons
         r.nombre as region
       FROM "Vendedora" v
       LEFT JOIN "Region" r ON v."regionId" = r.id
-      WHERE v.reputacion IN ('MALA', 'DUDOSA')
     `;
     const params: any[] = [];
     let paramIndex = 1;
+    const conditions: string[] = [];
+
+    if (reputacionesArray.length > 0) {
+      conditions.push(`v.reputacion = ANY($${paramIndex}::text[])`);
+      params.push(reputacionesArray);
+      paramIndex++;
+    }
 
     if (rol === 'GERENTE_REGIONAL') {
-      // Obtener regiones que gestiona el GR
       const regionesQuery = await pool.query(
         `SELECT "regionId" FROM "UsuarioRegion" WHERE "usuarioId" = $1`,
         [usuarioId]
       );
       const regionesIds = regionesQuery.rows.map(row => row.regionId);
-      if (regionesIds.length === 0) {
-        return res.json([]);
-      }
-      query += ` AND v."regionId" = ANY($${paramIndex}::int[])`;
+      if (regionesIds.length === 0) return res.json([]);
+      conditions.push(`v."regionId" = ANY($${paramIndex}::int[])`);
       params.push(regionesIds);
       paramIndex++;
     } else if (rol === 'AUXILIAR') {
-      // AUXILIAR: solo ve vendedoras que él mismo creó
-      query += ` AND v."creadaPorId" = $${paramIndex}`;
+      conditions.push(`v."creadaPorId" = $${paramIndex}`);
       params.push(usuarioId);
       paramIndex++;
     } else {
       return res.status(403).json({ error: 'No autorizado' });
     }
 
+    if (conditions.length) query += ' WHERE ' + conditions.join(' AND ');
     query += ` ORDER BY v.reputacion DESC, v.nombre ASC`;
 
     const result = await pool.query(query, params);
     res.json(result.rows);
   } catch (error: any) {
-    console.error('Error en reporte de malas reputaciones:', error);
+    console.error('Error en reporte por reputaciones:', error);
     res.status(500).json({ error: 'Error interno del servidor' });
   }
 }

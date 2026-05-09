@@ -16,7 +16,7 @@ const OPCIONES_REPUTACION = [
   'OBSERVADA'
 ];
 
-export const ReporteMalasReputaciones = ({ isOpen, onClose }: Props) => {
+export const ReporteVendedoras = ({ isOpen, onClose }: Props) => {
   const [vendedoras, setVendedoras] = useState<Vendedora[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -60,16 +60,10 @@ export const ReporteMalasReputaciones = ({ isOpen, onClose }: Props) => {
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-bold">📋 Reporte de Vendedoras por Reputación</h2>
             <div className="space-x-2">
-              <button
-                onClick={handleImprimir}
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-              >
+              <button onClick={handleImprimir} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
                 🖨️ Imprimir
               </button>
-              <button
-                onClick={onClose}
-                className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
-              >
+              <button onClick={onClose} className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">
                 Cerrar
               </button>
             </div>
@@ -117,11 +111,7 @@ export const ReporteMalasReputaciones = ({ isOpen, onClose }: Props) => {
                 </thead>
                 <tbody>
                   {vendedoras.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="text-center p-4">
-                        No hay vendedoras con las reputaciones seleccionadas.
-                      </td>
-                    </tr>
+                    <tr><td colSpan={6} className="text-center p-4">No hay vendedoras con las reputaciones seleccionadas.</td></tr>
                   ) : (
                     vendedoras.map((v) => (
                       <tr key={v.id}>

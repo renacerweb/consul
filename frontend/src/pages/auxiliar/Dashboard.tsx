@@ -1,7 +1,7 @@
 ﻿import { useState } from 'react';
 import LayoutAuxiliar from '../../components/LayoutAuxiliar';
 import Dashboard from '../../components/Dashboard';
-import { ReporteMalasReputaciones } from '../../components/ReporteMalasReputaciones';
+import { ReporteVendedoras } from '../../components/ReporteVendedoras';
 
 function AuxiliarDashboard() {
   const [showReporte, setShowReporte] = useState(false);
@@ -14,7 +14,7 @@ function AuxiliarDashboard() {
           onClick={() => setShowReporte(true)}
           className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
         >
-          📊 Reporte de Malas Reputaciones
+          📊 Reporte de Vendedoras
         </button>
       </div>
       <Dashboard
@@ -23,7 +23,7 @@ function AuxiliarDashboard() {
         canEdit={false}
         canDelete={false}
       />
-      <ReporteMalasReputaciones
+      <ReporteVendedoras
         isOpen={showReporte}
         onClose={() => setShowReporte(false)}
       />

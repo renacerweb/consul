@@ -1,7 +1,6 @@
 ﻿import axios from 'axios';
 import { Vendedora, CreateVendedoraRequest, Region } from '../types';
 
-// Usar variable de entorno con tipado seguro
 const API_URL = (import.meta as any).env?.VITE_API_URL || '/api';
 
 const api = axios.create({
@@ -17,9 +16,6 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// =====================================================
-// SERVICIOS DE VENDEDORAS
-// =====================================================
 export const vendedoraService = {
   listar: (params?: { regionId?: number; gerenteZonaId?: number }) =>
     api.get<Vendedora[]>('/vendedora', { params }),
@@ -36,14 +32,13 @@ export const vendedoraService = {
   eliminar: (id: number) => 
     api.delete(`/vendedora/${id}`),
 
-  // NUEVO: obtener reporte de vendedoras con reputación mala o dudosa
-  obtenerReporteMalas: () =>
-    api.get<Vendedora[]>('/vendedora/reporte/malas'),
+  // Nuevo: reporte con reputaciones múltiples
+  obtenerReporte: (reputaciones?: string[]) => {
+    const params = reputaciones && reputaciones.length ? { reputaciones: reputaciones.join(',') } : {};
+    return api.get<Vendedora[]>('/vendedora/reporte', { params });
+  },
 };
 
-// =====================================================
-// SERVICIOS DE REGIONES
-// =====================================================
 export const regionService = {
   listar: () => 
     api.get<Region[]>('/regiones'),
