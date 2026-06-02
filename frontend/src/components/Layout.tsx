@@ -92,7 +92,7 @@ const Layout = ({ children, title, menuItems, sidebarBg, sidebarBorder, sidebarH
           />
         )}
 
-        <main className="md:ml-64">
+        <main className="flex-1 min-h-screen">
           <div className="min-h-screen p-4 sm:p-6">
             <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">{children}</div>
           </div>
