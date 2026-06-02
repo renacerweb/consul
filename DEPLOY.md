@@ -87,6 +87,9 @@ Asegúrate de que `FRONTEND_URL` sea la URL de tu frontend en Vercel.
 ### `vercel.json`
 Ya configurado para servir el frontend estático con SPA fallback.
 
+### `frontend/vercel.json`
+También existe un `vercel.json` dentro de `frontend/` para que, si despliegas desde esa carpeta, Vercel siga el mismo comportamiento SPA de fallback.
+
 ### Deploy usando Vercel CLI
 1. Instala/actualiza Vercel CLI:
    ```bash
