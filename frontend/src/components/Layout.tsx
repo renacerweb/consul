@@ -42,7 +42,7 @@ const Layout = ({ children, title, menuItems, sidebarBg, sidebarBorder, sidebarH
 
       <div className="md:flex">
         <aside
-          className={`fixed inset-y-0 left-0 z-40 w-72 transform bg-white shadow-xl transition-transform duration-200 md:relative md:translate-x-0 md:w-64 md:shadow-none ${sidebarBg} ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}
+          className={`fixed inset-y-0 left-0 z-40 w-72 bg-white shadow-xl transition-transform duration-200 md:relative md:w-64 md:shadow-none ${sidebarBg} ${mobileOpen ? 'block translate-x-0' : 'hidden -translate-x-full'} md:block md:translate-x-0`}
         >
           <div className={`h-full flex flex-col text-white ${sidebarBg}`}>
             <div className={`p-5 border-b ${sidebarBorder}`}>
