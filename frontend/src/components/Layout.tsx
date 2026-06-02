@@ -24,8 +24,8 @@ const Layout = ({ children, title, menuItems, sidebarBg, sidebarBorder, sidebarH
   };
 
   return (
-    <div className="flex h-screen bg-gray-100">
-      <div className={`w-64 ${sidebarBg} text-white flex flex-col shadow-xl`}>
+    <div className="flex min-h-screen flex-col md:flex-row bg-gray-100">
+      <div className={`w-full md:w-64 ${sidebarBg} text-white flex flex-col shadow-xl flex-shrink-0`}>
         <div className={`p-5 border-b ${sidebarBorder}`}>
           <h1 className={`text-xl font-bold ${panelTitle === 'Sistema interno' ? 'text-white' : panelTitle}`}>Sistema Interno</h1>
           <div className="mt-3 flex items-center gap-2 text-xs text-gray-300">
@@ -37,7 +37,7 @@ const Layout = ({ children, title, menuItems, sidebarBg, sidebarBorder, sidebarH
             </div>
           )}
         </div>
-        <nav className="flex-1 p-4">
+        <nav className="flex-1 p-4 overflow-y-auto">
           <ul className="space-y-1.5">
             {menuItems.map((item) => (
               <li key={item.to}>
@@ -62,8 +62,8 @@ const Layout = ({ children, title, menuItems, sidebarBg, sidebarBorder, sidebarH
           </button>
         </div>
       </div>
-      <main className="flex-1 overflow-auto p-6">
-        <div className="bg-white rounded-xl shadow-sm p-6">{children}</div>
+      <main className="flex-1 overflow-auto p-4 sm:p-6">
+        <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">{children}</div>
       </main>
     </div>
   );

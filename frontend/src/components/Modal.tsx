@@ -10,9 +10,9 @@ interface ModalProps {
 
 function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalProps) {
   const sizeClasses = {
-    sm: 'max-w-md',
-    md: 'max-w-lg',
-    lg: 'max-w-2xl',
+    sm: 'max-w-sm sm:max-w-md',
+    md: 'max-w-full sm:max-w-lg',
+    lg: 'max-w-full sm:max-w-2xl',
   };
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -51,10 +51,10 @@ function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalProps) {
       <div
         className={`
           bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl w-full ${sizeClasses[size]} 
-          max-h-[90vh] overflow-y-auto border border-white/50 animate-scaleIn
+          max-w-[calc(100vw-1rem)] sm:max-w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto border border-white/50 animate-scaleIn
         `}
       >
-        <div className="flex justify-between items-center px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white rounded-t-2xl">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center px-4 sm:px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white rounded-t-2xl gap-3">
           <h2 id="modal-title" className="text-lg font-semibold text-slate-800">
             {title}
           </h2>
