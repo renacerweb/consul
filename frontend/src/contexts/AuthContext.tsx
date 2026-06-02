@@ -30,8 +30,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const storedUsuario = localStorage.getItem('usuario');
+    const token = sessionStorage.getItem('token');
+    const storedUsuario = sessionStorage.getItem('usuario');
     
     if (token && storedUsuario) {
       setUsuario(JSON.parse(storedUsuario));
@@ -44,14 +44,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const response = await api.post('/auth/login', { email, password });
     const { token, usuario } = response.data;
     
-    localStorage.setItem('token', token);
-    localStorage.setItem('usuario', JSON.stringify(usuario));
+    sessionStorage.setItem('token', token);
+    sessionStorage.setItem('usuario', JSON.stringify(usuario));
     setUsuario(usuario);
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('usuario');
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('usuario');
     localStorage.removeItem('rememberedEmail');
     setUsuario(null);
   };

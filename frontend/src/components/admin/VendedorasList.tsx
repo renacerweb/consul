@@ -75,7 +75,7 @@ function VendedorasList({ canEdit = true, canDelete = true, canCreate = true }: 
   });
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem('usuario') || '{}');
+    const user = JSON.parse(sessionStorage.getItem('usuario') || '{}');
     setUsuario(user);
   }, []);
 
