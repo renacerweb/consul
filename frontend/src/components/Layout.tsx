@@ -1,4 +1,4 @@
-﻿import { ReactNode } from 'react';
+﻿import { ReactNode, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -17,6 +17,7 @@ interface LayoutProps {
 const Layout = ({ children, title, menuItems, sidebarBg, sidebarBorder, sidebarHover, panelTitle }: LayoutProps) => {
   const { logout, usuario } = useAuth();
   const navigate = useNavigate();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -24,47 +25,79 @@ const Layout = ({ children, title, menuItems, sidebarBg, sidebarBorder, sidebarH
   };
 
   return (
-    <div className="flex min-h-screen flex-col md:flex-row bg-gray-100">
-      <div className={`w-full md:w-64 ${sidebarBg} text-white flex flex-col shadow-xl flex-shrink-0`}>
-        <div className={`p-5 border-b ${sidebarBorder}`}>
-          <h1 className={`text-xl font-bold ${panelTitle === 'Sistema interno' ? 'text-white' : panelTitle}`}>Sistema Interno</h1>
-          <div className="mt-3 flex items-center gap-2 text-xs text-gray-300">
-            <span>Rol: <span className="text-white font-medium">{title}</span></span>
-          </div>
-          {usuario && (
-            <div className="mt-2 text-xs text-gray-400 truncate">
-              {usuario.email}
-            </div>
-          )}
+    <div className="min-h-screen bg-gray-100">
+      <div className="md:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-slate-200 shadow-sm">
+        <div>
+          <h1 className="text-lg font-bold text-slate-900">Sistema Interno</h1>
+          <p className="text-sm text-slate-600">Rol: {title}</p>
         </div>
-        <nav className="flex-1 p-4 overflow-y-auto">
-          <ul className="space-y-1.5">
-            {menuItems.map((item) => (
-              <li key={item.to}>
-                <Link 
-                  to={item.to} 
-                  className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 hover:${sidebarHover} text-gray-300 hover:text-white`}
-                >
-                  <span className="text-xl">{item.icon}</span>
-                  <span className="font-medium text-sm">{item.label}</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
-        <div className="p-4 border-t border-white/10">
-          <button 
-            onClick={handleLogout}
-            className="w-full flex items-center gap-2 px-3 py-2 text-red-400 hover:bg-red-500/10 rounded-xl transition-colors"
-          >
-            <span>🚪</span>
-            <span className="text-sm">Cerrar Sesión</span>
-          </button>
-        </div>
+        <button
+          onClick={() => setMobileOpen((prev) => !prev)}
+          className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50"
+          aria-label="Abrir menú"
+        >
+          <span className="text-xl">☰</span>
+        </button>
       </div>
-      <main className="flex-1 overflow-auto p-4 sm:p-6">
-        <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">{children}</div>
-      </main>
+
+      <div className="md:flex">
+        <aside
+          className={`fixed inset-y-0 left-0 z-40 w-72 transform bg-white shadow-xl transition-transform duration-200 md:relative md:translate-x-0 md:w-64 md:shadow-none ${sidebarBg} ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}
+        >
+          <div className={`h-full flex flex-col text-white ${sidebarBg}`}>
+            <div className={`p-5 border-b ${sidebarBorder}`}>
+              <h1 className={`text-xl font-bold ${panelTitle === 'Sistema interno' ? 'text-white' : panelTitle}`}>Sistema Interno</h1>
+              <div className="mt-3 flex items-center gap-2 text-xs text-gray-200">
+                <span>Rol: <span className="text-white font-medium">{title}</span></span>
+              </div>
+              {usuario && (
+                <div className="mt-2 text-xs text-gray-300 truncate">
+                  {usuario.email}
+                </div>
+              )}
+            </div>
+            <nav className="flex-1 p-4 overflow-y-auto">
+              <ul className="space-y-1.5">
+                {menuItems.map((item) => (
+                  <li key={item.to}>
+                    <Link
+                      to={item.to}
+                      onClick={() => setMobileOpen(false)}
+                      className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 hover:${sidebarHover} text-gray-300 hover:text-white`}
+                    >
+                      <span className="text-xl">{item.icon}</span>
+                      <span className="font-medium text-sm">{item.label}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+            <div className="p-4 border-t border-white/10">
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center gap-2 px-3 py-2 text-red-400 hover:bg-red-500/10 rounded-xl transition-colors"
+              >
+                <span>🚪</span>
+                <span className="text-sm">Cerrar Sesión</span>
+              </button>
+            </div>
+          </div>
+        </aside>
+
+        {mobileOpen && (
+          <button
+            onClick={() => setMobileOpen(false)}
+            className="fixed inset-0 z-30 bg-black/30 md:hidden"
+            aria-label="Cerrar menú"
+          />
+        )}
+
+        <main className="md:ml-64">
+          <div className="min-h-screen p-4 sm:p-6">
+            <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">{children}</div>
+          </div>
+        </main>
+      </div>
     </div>
   );
 };
