@@ -86,10 +86,10 @@ app.use(express.urlencoded({ extended: true }))
 // Rate limiting más estricto para login
 app.use(['/api/auth/login', '/auth/login'], authLimiter)
 app.use(['/api/auth', '/auth'], authRoutes)
-app.use('/api/vendedora', vendedoraRoutes)
-app.use('/api/zonas', zonaRoutes)
-app.use('/api/mensajes', mensajeRoutes)
-app.use('/api/seguridad', seguridadRoutes)
+app.use(['/api/vendedora', '/vendedora'], vendedoraRoutes)
+app.use(['/api/zonas', '/zonas'], zonaRoutes)
+app.use(['/api/mensajes', '/mensajes'], mensajeRoutes)
+app.use(['/api/seguridad', '/seguridad'], seguridadRoutes)
 
 // ==================== RUTA SEGURA PARA REGIONES ====================
 // Requiere autenticación (Bearer token)
