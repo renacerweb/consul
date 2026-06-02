@@ -1,140 +1,137 @@
 # 🚀 Sistema Renacer - Guía de Deploy
 
 ## 📋 Descripción
-Sistema de gestión de vendedoras con autenticación multi-rol (Admin, Gerente, Auxiliar).
+Deploy de la aplicación actual con:
+- **Frontend:** React + TypeScript + Vite
+- **Backend:** Express + TypeScript
+- **Base de datos:** PostgreSQL en Supabase
+- **Deploy:** Vercel (frontend) + Render (backend)
 
-## 🏗️ Arquitectura
-- **Frontend**: React 18 + TypeScript + Vite + Tailwind CSS
-- **Backend**: Express.js + TypeScript + PostgreSQL + Prisma
-- **Deploy**: Vercel (Frontend) + Railway (Backend)
+## 🏗️ Arquitectura de despliegue
+- `frontend/` → sitio estático en Vercel
+- `backend/` → servicio Node en Render
+- `backend/.env` no debe subirse al repositorio
+- `vercel.json` ya configurado para SPA
+- `render.yaml` ya preparado para Render
 
-## 🚀 Deploy Automático (GitHub Actions)
-
-### Configuración Inicial
-
-1. **Variables de entorno en GitHub Secrets:**
-   ```bash
-   # Vercel
-   VERCEL_TOKEN=tu_vercel_token
-   VERCEL_ORG_ID=tu_org_id
-   VERCEL_PROJECT_ID=tu_project_id
-
-   # Railway
-   RAILWAY_TOKEN=tu_railway_token
-   ```
-
-2. **Configurar proyectos:**
-   - Crear proyecto en [Vercel](https://vercel.com) y conectar el repo
-   - Crear proyecto en [Railway](https://railway.app) y conectar el repo
-
-3. **Deploy automático:**
-   - Cada push a `main` activa el CI/CD
-   - Frontend se despliega a Vercel
-   - Backend se despliega a Railway
-
-## 🔧 Deploy Manual
-
-### Requisitos Previos
+## ✅ Validación local
+Desde la raíz del repo:
 ```bash
-# Instalar CLIs
-npm install -g vercel
-curl -fsSL https://railway.app/install.sh | sh
+cd frontend
+npm install
+npm run build
 
-# Login en servicios
-vercel login
-railway login
+cd ../backend
+npm install
+npm run build
 ```
 
-### Ejecutar Deploy
+Si ambos comandos terminan sin errores, la app está lista para deploy.
+
+## 🧩 Backend en Render
+
+### Configuración de Render
+Puedes usar `render.yaml` o crear el servicio manualmente.
+
+### Opción A: Deploy usando `render.yaml`
+1. Conecta el repo a Render.
+2. Agrega `render.yaml` al pipeline.
+3. Render detectará el servicio `renacer-backend`.
+
+### Opción B: Configuración manual
+- **Name:** `renacer-backend`
+- **Runtime:** Node
+- **Root Directory:** `backend`
+- **Build Command:** `npm install && npm run build`
+- **Start Command:** `npm start`
+
+#### Variables de entorno en Render
+- `DATABASE_URL` = `postgresql://postgres.liwwyfvvxolbwhpypxuq:248216Blan*@aws-1-us-east-2.pooler.supabase.com:6543/postgres`
+- `JWT_SECRET` = `<tu_jwt_secret>`
+- `FRONTEND_URL` = `https://<tu-sitio-vercel>`
+- `NODE_ENV` = `production`
+- `PORT` = `10000`
+
+> El backend ya está preparado para leer estas variables y usar el pool de PostgreSQL con SSL.
+
+### Nota de CORS
+El backend permite CORS solo desde:
+- `http://localhost:5173`
+- `http://localhost:3001`
+- `FRONTEND_URL` en producción
+
+Asegúrate de que `FRONTEND_URL` en Render sea la URL de Vercel.
+
+## 🧠 Frontend en Vercel
+
+### Configuración de Vercel
+- **Build Command:** `npm install && npm run build`
+- **Output Directory:** `frontend/dist`
+- **Framework Preset:** `Other`
+
+### `vercel.json`
+Ya configurado para servir el frontend estático con SPA fallback.
+
+### Variable de entorno en Vercel
+- `VITE_API_URL` = `https://<tu-backend-en-render>/api`
+
+> El frontend usa `VITE_API_URL || '/api'`, así que en producción apunta al backend Render.
+
+## 🔌 Conexión entre Frontend y Backend
+En producción el flujo debe ser:
+- Frontend Vercel → Backend Render
+- Backend Render → Base de datos Supabase
+
+Ejemplo:
+- `VITE_API_URL=https://renacer-backend.onrender.com/api`
+
+## 🔎 Pruebas post-deploy
+
+### Backend
+Visita:
 ```bash
-# Deploy completo
-./deploy.sh full
-
-# Solo frontend
-./deploy.sh frontend
-
-# Solo backend
-./deploy.sh backend
+https://<tu-backend-en-render>/api/health
+```
+Debe devolver:
+```json
+{ "status": "ok", "message": "Servidor funcionando" }
 ```
 
-## ⚙️ Configuración de Producción
+### Frontend
+Visita la URL de Vercel y verifica que:
+- la app carga correctamente
+- el login funciona
+- las peticiones a `/api` responden bien
 
-### Variables de Entorno (Backend)
+### Base de datos
+Verifica en Supabase que las tablas existen y que la conexión está activa.
 
-Crear archivo `.env` en Railway dashboard:
+## 🛠️ Troubleshooting rápido
 
-```env
-DATABASE_URL=postgresql://usuario:password@host:5432/database
-JWT_SECRET=tu_jwt_secret_muy_seguro_aqui
-NODE_ENV=production
-PORT=3000
-```
+### Problema: backend no arranca
+- Revisa logs en Render
+- Asegura `DATABASE_URL` y `JWT_SECRET`
+- Asegura `PORT=10000` o usa el puerto asignado por Render
 
-### Variables de Entorno (Frontend)
+### Problema: frontend no se conecta al API
+- Revisa `VITE_API_URL` en Vercel
+- Revisa CORS y `FRONTEND_URL` en Render
 
-Configurar en Vercel dashboard:
+### Problema: rutas client-side fallan
+- `vercel.json` ya incluye SPA fallback a `frontend/dist/index.html`
 
-```env
-VITE_API_URL=https://tu-backend-railway-url
-```
+## 🧾 Notas finales
+- La app **no** usa Prisma.
+- El backend usa `pg` y `dotenv`.
+- El frontend ya está listo para deploy estático en Vercel.
 
-## 🔍 Verificación Post-Deploy
-
-1. **Health Check:**
-   ```bash
-   curl https://tu-backend-url/api/health
-   ```
-
-2. **Frontend URL:**
-   - Proporcionada por Vercel después del deploy
-
-3. **Base de datos:**
-   - Verificar conexión en Railway dashboard
-   - Ejecutar migraciones si es necesario
-
-## 📊 Monitoreo
-
-- **Vercel**: Analytics y logs en dashboard
-- **Railway**: Logs y métricas en dashboard
-- **Base de datos**: Monitor de Railway
-
-## 🐛 Troubleshooting
-
-### Problemas Comunes
-
-1. **Build falla:**
-   - Verificar dependencias en `package.json`
-   - Revisar logs de GitHub Actions
-
-2. **API no responde:**
-   - Verificar variables de entorno
-   - Revisar logs del backend en Railway
-
-3. **Frontend no carga:**
-   - Verificar URL del backend en variables de entorno
-   - Revisar CORS settings
-
-### Logs de Deploy
+## 📌 Comandos útiles
 ```bash
-# Ver logs de GitHub Actions
-# Ir a la pestaña "Actions" en GitHub
+# Build local
+cd frontend && npm install && npm run build
+cd ../backend && npm install && npm run build
 
-# Ver logs de Railway
-railway logs
-
-# Ver logs de Vercel
-vercel logs
+# Iniciar localmente
+cd backend && npm run dev
+cd frontend && npm run dev
 ```
-
-## 🔄 Actualizaciones
-
-1. **Push a main:** Deploy automático
-2. **Deploy manual:** `./deploy.sh full`
-3. **Rollback:** Usar opciones de rollback en Vercel/Railway
-
-## 📞 Soporte
-
-Para problemas de deploy:
-1. Revisar logs de error
-2. Verificar configuración de variables de entorno
-3. Contactar soporte de Vercel/Railway si es necesario
