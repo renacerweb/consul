@@ -84,8 +84,8 @@ app.use(express.urlencoded({ extended: true }))
 
 // ==================== RUTAS DE LA API ====================
 // Rate limiting más estricto para login
-app.use('/api/auth/login', authLimiter)
-app.use('/api/auth', authRoutes)
+app.use(['/api/auth/login', '/auth/login'], authLimiter)
+app.use(['/api/auth', '/auth'], authRoutes)
 app.use('/api/vendedora', vendedoraRoutes)
 app.use('/api/zonas', zonaRoutes)
 app.use('/api/mensajes', mensajeRoutes)
