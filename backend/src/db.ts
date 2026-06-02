@@ -30,4 +30,27 @@ pool.on('error', (err) => {
   console.error('❌ Error de conexión:', err.message);
 });
 
+const keepAliveIntervalMinutes = parseInt(process.env.DB_KEEPALIVE_INTERVAL_MINUTES || '10080', 10);
+const keepAliveKey = Symbol.for('backend.db.keepaliveStarted');
+
+if (!(globalThis as any)[keepAliveKey]) {
+  if (keepAliveIntervalMinutes > 0) {
+    const keepAliveMs = keepAliveIntervalMinutes * 60 * 1000;
+
+    const keepAlive = async () => {
+      try {
+        await pool.query('SELECT 1');
+        console.log(`🟢 DB keepalive ejecutada cada ${keepAliveIntervalMinutes} min`);
+      } catch (error) {
+        console.error('❌ DB keepalive error:', (error as Error).message || error);
+      }
+    };
+
+    keepAlive();
+    setInterval(keepAlive, keepAliveMs);
+  }
+
+  (globalThis as any)[keepAliveKey] = true;
+}
+
 export default pool;
