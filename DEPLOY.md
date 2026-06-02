@@ -1,7 +1,7 @@
 # 🚀 Sistema Renacer - Guía de Deploy
 
 ## 📋 Descripción
-Deploy de la aplicación actual con:
+Deploy de la aplicación con:
 - **Frontend:** React + TypeScript + Vite
 - **Backend:** Express + TypeScript
 - **Base de datos:** PostgreSQL en Supabase
@@ -12,7 +12,7 @@ Deploy de la aplicación actual con:
 - `backend/` → servicio Node en Render
 - `backend/.env` no debe subirse al repositorio
 - `vercel.json` ya configurado para SPA
-- `render.yaml` ya preparado para Render
+- `backend/render.yaml` ya preparado para Render
 
 ## ✅ Validación local
 Desde la raíz del repo:
@@ -28,43 +28,58 @@ npm run build
 
 Si ambos comandos terminan sin errores, la app está lista para deploy.
 
+## 📦 Estado actual
+- **Frontend:** listo para deploy en Vercel.
+- **Backend:** listo para deploy en Render.
+- **Backend aún no desplegado en producción.**
+
 ## 🧩 Backend en Render
 
-### Configuración de Render
-Puedes usar `render.yaml` o crear el servicio manualmente.
+### Configuración recomendada
+Puedes usar `backend/render.yaml` o crear el servicio manualmente.
 
-### Opción A: Deploy usando `render.yaml`
+### Opción A: Deploy con `render.yaml`
 1. Conecta el repo a Render.
-2. Agrega `render.yaml` al pipeline.
-3. Render detectará el servicio `renacer-backend`.
+2. Importa la rama donde está el proyecto.
+3. Render detectará el servicio `renacer-backend` usando `backend/render.yaml`.
 
-### Opción B: Configuración manual
+### Opción B: Configuración manual en Render
 - **Name:** `renacer-backend`
 - **Runtime:** Node
 - **Root Directory:** `backend`
 - **Build Command:** `npm install && npm run build`
 - **Start Command:** `npm start`
 
-#### Variables de entorno en Render
+#### Variables de entorno necesarias
 - `DATABASE_URL` = `postgresql://postgres.liwwyfvvxolbwhpypxuq:248216Blan*@aws-1-us-east-2.pooler.supabase.com:6543/postgres`
 - `JWT_SECRET` = `<tu_jwt_secret>`
-- `FRONTEND_URL` = `https://<tu-sitio-vercel>`
+- `FRONTEND_URL` = `https://<tu-frontend-vercel>`
 - `NODE_ENV` = `production`
 - `PORT` = `10000`
 
-> El backend ya está preparado para leer estas variables y usar el pool de PostgreSQL con SSL.
+> El backend ya está preparado para leer estas variables y usar la base de datos.
+
+### Opción C: Deploy manual desde Dashboard de Render
+1. Abre [https://dashboard.render.com](https://dashboard.render.com).
+2. Crea un nuevo servicio de tipo **Web Service**.
+3. Selecciona el repo y la rama correcta.
+4. En **Root Directory**, pon `backend`.
+5. En **Build Command**, pon `npm install && npm run build`.
+6. En **Start Command**, pon `npm start`.
+7. Agrega las variables de entorno listadas arriba.
+8. Despliega el servicio.
 
 ### Nota de CORS
-El backend permite CORS solo desde:
+El backend permite CORS desde:
 - `http://localhost:5173`
 - `http://localhost:3001`
-- `FRONTEND_URL` en producción
+- el valor de `FRONTEND_URL` en producción
 
-Asegúrate de que `FRONTEND_URL` en Render sea la URL de Vercel.
+Asegúrate de que `FRONTEND_URL` sea la URL de tu frontend en Vercel.
 
 ## 🧠 Frontend en Vercel
 
-### Configuración de Vercel
+### Configuración recomendada
 - **Build Command:** `npm install && npm run build`
 - **Output Directory:** `frontend/dist`
 - **Framework Preset:** `Other`
@@ -91,27 +106,26 @@ Ya configurado para servir el frontend estático con SPA fallback.
    cd frontend
    vercel --prod --yes
    ```
-5. Si ya tiene proyecto y quieres enlazar manualmente, usa:
+5. Si quieres enlazar el proyecto manualmente, usa:
    ```bash
    vercel link
    ```
 
 ### Variable de entorno en Vercel
-- `VITE_API_URL` = `https://consul-g4ch.onrender.com/api`
+- `VITE_API_URL` = `https://<tu-backend-en-render>.onrender.com/api`
 
-> El frontend usa `VITE_API_URL || '/api'`, así que en producción apunta al backend Render.
+> En producción, el frontend usa `VITE_API_URL || '/api'`. Si pones solo `https://<tu-backend-en-render>.onrender.com`, el cliente puede enviar requests a `/auth/login` en lugar de `/api/auth/login`. Ahora el código normaliza el sufijo `/api`, pero la mejor práctica es definirla con `/api`.
 
 ### Nota de despliegue
-- Si Vercel detecta múltiples servicios y pregunta por directorios, elige `./frontend` para este frontend.
-- Si ves un error de proyecto, elimina `.vercel` y vuelve a ejecutar `vercel --prod --yes`.
-- Si usas `vercel link`, confirma que la ruta está en `frontend/`.
+- Si Vercel pregunta por directorios, elige `./frontend`.
+- Si hay errores de configuración vieja, elimina `.vercel` y vuelve a desplegar.
 
 ## 🔌 Conexión entre Frontend y Backend
-En producción el flujo debe ser:
+En producción el flujo es:
 - Frontend Vercel → Backend Render
-- Backend Render → Base de datos Supabase
+- Backend Render → Supabase
 
-Ejemplo:
+Ejemplo de variable:
 - `VITE_API_URL=https://renacer-backend.onrender.com/api`
 
 ## 🔎 Pruebas post-deploy
@@ -127,32 +141,29 @@ Debe devolver:
 ```
 
 ### Frontend
-Visita la URL de Vercel y verifica que:
-- la app carga correctamente
+Visita la URL de Vercel y verifica:
+- la app carga
 - el login funciona
-- las peticiones a `/api` responden bien
-
-### Base de datos
-Verifica en Supabase que las tablas existen y que la conexión está activa.
+- las peticiones a la API responden
 
 ## 🛠️ Troubleshooting rápido
 
-### Problema: backend no arranca
+### Backend no arranca
 - Revisa logs en Render
-- Asegura `DATABASE_URL` y `JWT_SECRET`
-- Asegura `PORT=10000` o usa el puerto asignado por Render
+- Asegura `DATABASE_URL`, `JWT_SECRET` y `PORT`
+- Asegura `FRONTEND_URL` sea la URL de Vercel
 
-### Problema: frontend no se conecta al API
+### Frontend no conecta al API
 - Revisa `VITE_API_URL` en Vercel
 - Revisa CORS y `FRONTEND_URL` en Render
 
-### Problema: rutas client-side fallan
-- `vercel.json` ya incluye SPA fallback a `frontend/dist/index.html`
+### Rutas client-side fallan
+- `vercel.json` ya usa SPA fallback a `frontend/dist/index.html`
 
 ## 🧾 Notas finales
 - La app **no** usa Prisma.
-- El backend usa `pg` y `dotenv`.
-- El frontend ya está listo para deploy estático en Vercel.
+- El backend usa `pg`, `dotenv` y `express`.
+- El frontend está listo para Vercel.
 
 ## 📌 Comandos útiles
 ```bash
