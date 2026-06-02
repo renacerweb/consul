@@ -159,10 +159,10 @@ export async function registrarController(req: Request, res: Response) {
     // =====================================================
     
     if (usuarioAuth.rol === 'ADMIN') {
-      if (rol !== 'GERENTE_REGIONAL' && rol !== 'AUXILIAR') {
+      if (rol !== 'GERENTE_REGIONAL' && rol !== 'GERENTE_ZONA' && rol !== 'AUXILIAR') {
         return res.status(403).json({ error: 'No tienes permiso para crear este rol' });
       }
-      if (rol === 'GERENTE_REGIONAL' && (!finalRegionIds || finalRegionIds.length === 0)) {
+      if ((rol === 'GERENTE_REGIONAL' || rol === 'GERENTE_ZONA') && (!finalRegionIds || finalRegionIds.length === 0)) {
         return res.status(400).json({ error: 'Debes seleccionar al menos una región' });
       }
     } 

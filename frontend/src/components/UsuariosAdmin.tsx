@@ -101,6 +101,12 @@ function UsuariosAdmin() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if ((formData.rol === 'GERENTE_REGIONAL' || formData.rol === 'GERENTE_ZONA') && formData.regionIds.length === 0) {
+      alert('❌ Debes seleccionar al menos una región para este rol');
+      return;
+    }
+
     try {
       const regionIdsNumber = formData.regionIds.map(id => parseInt(id, 10));
       
@@ -109,7 +115,7 @@ function UsuariosAdmin() {
         nombre: formData.nombre,
         password: formData.password,
         rol: formData.rol,
-        regionIds: formData.rol === 'GERENTE_REGIONAL' ? regionIdsNumber : [],
+        regionIds: (formData.rol === 'GERENTE_REGIONAL' || formData.rol === 'GERENTE_ZONA') ? regionIdsNumber : [],
       });
       
       setShowModal(false);
@@ -124,6 +130,12 @@ function UsuariosAdmin() {
   const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editUsuario) return;
+
+    if ((editFormData.rol === 'GERENTE_REGIONAL' || editFormData.rol === 'GERENTE_ZONA') && editFormData.regionIds.length === 0) {
+      alert('❌ Debes seleccionar al menos una región para este rol');
+      return;
+    }
+
     try {
       const updateData: any = {
         email: editFormData.email,
@@ -136,8 +148,8 @@ function UsuariosAdmin() {
         updateData.password = editFormData.password;
       }
       
-      // Solo incluir regionIds si es GERENTE_REGIONAL
-      if (editFormData.rol === 'GERENTE_REGIONAL') {
+      // Solo incluir regionIds si es GERENTE_REGIONAL o GERENTE_ZONA
+      if (editFormData.rol === 'GERENTE_REGIONAL' || editFormData.rol === 'GERENTE_ZONA') {
         updateData.regionIds = editFormData.regionIds.map(id => parseInt(id, 10));
       }
       
@@ -166,7 +178,7 @@ function UsuariosAdmin() {
     setEditUsuario(usuario);
     let regionIds: string[] = [];
     
-    if (usuario.rol === 'GERENTE_REGIONAL') {
+    if (usuario.rol === 'GERENTE_REGIONAL' || usuario.rol === 'GERENTE_ZONA') {
       regionIds = await fetchRegionesPorUsuario(usuario.id);
     }
     
@@ -310,8 +322,8 @@ function UsuariosAdmin() {
             </select>
           </div>
 
-          {/* Checkboxes para regiones (solo para GERENTE_REGIONAL) */}
-          {formData.rol === 'GERENTE_REGIONAL' && (
+          {/* Checkboxes para regiones (GERENTE_REGIONAL o GERENTE_ZONA) */}
+          {(formData.rol === 'GERENTE_REGIONAL' || formData.rol === 'GERENTE_ZONA') && (
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
                 Regiones (puede seleccionar una o más)
@@ -392,8 +404,8 @@ function UsuariosAdmin() {
             </select>
           </div>
 
-          {/* Checkboxes para regiones en edición (solo para GERENTE_REGIONAL) */}
-          {editFormData.rol === 'GERENTE_REGIONAL' && (
+          {/* Checkboxes para regiones en edición (GERENTE_REGIONAL o GERENTE_ZONA) */}
+          {(editFormData.rol === 'GERENTE_REGIONAL' || editFormData.rol === 'GERENTE_ZONA') && (
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
                 Regiones asignadas
