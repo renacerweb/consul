@@ -59,10 +59,11 @@ function UsuariosAdmin() {
 
   const fetchRegiones = async () => {
     try {
-      const response = await api.get('/regiones');
+      const response = await api.get('/auth/regiones');
       setRegiones(response.data);
     } catch (err) {
       console.error('Error al cargar regiones:', err);
+      setError('Error al cargar regiones');
     }
   };
 
@@ -329,18 +330,22 @@ function UsuariosAdmin() {
                 Regiones (puede seleccionar una o más)
               </label>
               <div className="space-y-2 border border-slate-200 rounded-lg p-3 bg-slate-50">
-                {regiones.map(region => (
-                  <label key={region.id} className="flex items-center gap-2 cursor-pointer hover:bg-slate-100 p-1 rounded">
-                    <input
-                      type="checkbox"
-                      value={region.id}
-                      checked={formData.regionIds.includes(region.id.toString())}
-                      onChange={(e) => handleRegionChange(e.target.value, e.target.checked)}
-                      className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
-                    />
-                    <span className="text-slate-700">{region.nombre}</span>
-                  </label>
-                ))}
+                {regiones.length > 0 ? (
+                  regiones.map(region => (
+                    <label key={region.id} className="flex items-center gap-2 cursor-pointer hover:bg-slate-100 p-1 rounded">
+                      <input
+                        type="checkbox"
+                        value={region.id}
+                        checked={formData.regionIds.includes(region.id.toString())}
+                        onChange={(e) => handleRegionChange(e.target.value, e.target.checked)}
+                        className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
+                      />
+                      <span className="text-slate-700">{region.nombre}</span>
+                    </label>
+                  ))
+                ) : (
+                  <div className="text-sm text-slate-500 py-2">No se encontraron regiones disponibles.</div>
+                )}
               </div>
             </div>
           )}
