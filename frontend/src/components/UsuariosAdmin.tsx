@@ -59,7 +59,7 @@ function UsuariosAdmin() {
 
   const fetchRegiones = async () => {
     try {
-      const response = await api.get('/auth/regiones');
+      const response = await api.get('/regiones');
       setRegiones(response.data);
     } catch (err) {
       console.error('Error al cargar regiones:', err);

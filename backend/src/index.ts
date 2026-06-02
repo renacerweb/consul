@@ -37,6 +37,7 @@ import vendedoraRoutes from './routes/vendedoraRoutes'
 import zonaRoutes from './routes/zonaRoutes'
 import mensajeRoutes from './routes/mensajeRoutes'
 import seguridadRoutes from './routes/seguridadRoutes'
+import { listarRegionesController } from './controllers/usuarioController'
 
 const app = express()
 const PORT: number = parseInt(process.env.PORT || '3001', 10)
@@ -93,12 +94,7 @@ app.use(['/api/seguridad', '/seguridad'], seguridadRoutes)
 
 // ==================== RUTA SEGURA PARA REGIONES ====================
 // Requiere autenticación (Bearer token)
-app.get('/api/regiones', autenticar, (req, res) => {
-  res.json([
-    { id: 1, nombre: 'Portuguesa' },
-    { id: 2, nombre: 'Cojedes' }
-  ]);
-});
+app.get('/api/regiones', autenticar, listarRegionesController);
 
 // ==================== RUTAS DE PRUEBA ====================
 app.get('/api/health', (req, res) => {
