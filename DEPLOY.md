@@ -72,10 +72,39 @@ Asegúrate de que `FRONTEND_URL` en Render sea la URL de Vercel.
 ### `vercel.json`
 Ya configurado para servir el frontend estático con SPA fallback.
 
+### Deploy usando Vercel CLI
+1. Instala/actualiza Vercel CLI:
+   ```bash
+   npm install -g vercel
+   ```
+2. Desde la raíz del repo elimina cualquier configuración local vieja de Vercel:
+   ```bash
+   rm -rf .vercel
+   ```
+3. Inicia sesión:
+   ```bash
+   vercel logout
+   vercel login
+   ```
+4. Despliega el frontend:
+   ```bash
+   cd frontend
+   vercel --prod --yes
+   ```
+5. Si ya tiene proyecto y quieres enlazar manualmente, usa:
+   ```bash
+   vercel link
+   ```
+
 ### Variable de entorno en Vercel
-- `VITE_API_URL` = `https://<tu-backend-en-render>/api`
+- `VITE_API_URL` = `https://consul-g4ch.onrender.com/api`
 
 > El frontend usa `VITE_API_URL || '/api'`, así que en producción apunta al backend Render.
+
+### Nota de despliegue
+- Si Vercel detecta múltiples servicios y pregunta por directorios, elige `./frontend` para este frontend.
+- Si ves un error de proyecto, elimina `.vercel` y vuelve a ejecutar `vercel --prod --yes`.
+- Si usas `vercel link`, confirma que la ruta está en `frontend/`.
 
 ## 🔌 Conexión entre Frontend y Backend
 En producción el flujo debe ser:
