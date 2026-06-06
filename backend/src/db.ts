@@ -30,7 +30,9 @@ pool.on('error', (err) => {
   console.error('❌ Error de conexión:', err.message);
 });
 
-const keepAliveIntervalMinutes = parseInt(process.env.DB_KEEPALIVE_INTERVAL_MINUTES || '10080', 10);
+// Por defecto, mantener la DB viva cada 5 minutos (útil en entornos serverless).
+// Puedes sobrescribir con la variable de entorno DB_KEEPALIVE_INTERVAL_MINUTES.
+const keepAliveIntervalMinutes = parseInt(process.env.DB_KEEPALIVE_INTERVAL_MINUTES || '5', 10);
 const keepAliveKey = Symbol.for('backend.db.keepaliveStarted');
 
 if (!(globalThis as any)[keepAliveKey]) {

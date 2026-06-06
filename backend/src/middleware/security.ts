@@ -127,11 +127,14 @@ export async function registrarConsultaAuditoria(
   exitosa: boolean
 ) {
   try {
-    await pool.query(
+    // Fire-and-forget: no bloquear la respuesta esperando la inserción de auditoría
+    pool.query(
       `INSERT INTO "AuditoriaConsulta" ("cedulaConsultada", "usuarioId", ip, "userAgent", exitosa)
        VALUES ($1, $2, $3, $4, $5)`,
       [cedulaConsultada, usuarioId, ip, userAgent || null, exitosa]
-    );
+    ).catch(err => {
+      console.error('Error al registrar auditoría (no bloqueante):', err);
+    });
   } catch (error) {
     console.error('Error al registrar auditoría:', error);
   }
