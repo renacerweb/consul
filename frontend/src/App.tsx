@@ -21,6 +21,7 @@ const AdminSeguridad = lazy(() => import('./pages/admin/Seguridad'));
 const GerenteRegionalDashboard = lazy(() => import('./pages/gerente-regional/Dashboard'));
 const GerenteRegionalUsuarios = lazy(() => import('./pages/gerente-regional/Usuarios'));
 const GerenteRegionalVendedoras = lazy(() => import('./pages/gerente-regional/Vendedoras'));
+const GerenteRegionalMensajes = lazy(() => import('./pages/gerente-regional/Mensajes'));
 
 // Gerente Zona
 const GerenteDashboard = lazy(() => import('./pages/gerente/Dashboard'));
@@ -83,6 +84,11 @@ function App() {
               <Route path="/gerente-regional/vendedoras" element={
                 <ProtectedRoute allowedRoles={['GERENTE_REGIONAL']}>
                   <GerenteRegionalVendedoras />
+                </ProtectedRoute>
+              } />
+              <Route path="/gerente-regional/mensajes" element={
+                <ProtectedRoute allowedRoles={['GERENTE_REGIONAL']}>
+                  <GerenteRegionalMensajes />
                 </ProtectedRoute>
               } />
               

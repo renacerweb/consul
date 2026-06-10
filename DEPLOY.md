@@ -14,6 +14,24 @@ Deploy de la aplicación con:
 - `vercel.json` ya configurado para SPA
 - `backend/render.yaml` ya preparado para Render
 
+## 🗄️ Esquema de Supabase
+La base de datos usa PostgreSQL en Supabase. Antes de desplegar el backend, asegúrate de que la tabla `Vendedora` tenga la columna `descripcion`.
+
+Puedes aplicar esta columna de dos formas:
+
+- Ejecutar el script localmente en `backend`:
+  ```bash
+  cd backend
+  npm run add-vendedora-descripcion
+  ```
+- O ejecutar directamente el SQL en Supabase:
+  ```sql
+  ALTER TABLE "Vendedora"
+  ADD COLUMN IF NOT EXISTS descripcion TEXT;
+  ```
+
+El script también está documentado en `backend/sql/add_vendedora_descripcion.sql`.
+
 ## ✅ Validación local
 Desde la raíz del repo:
 ```bash

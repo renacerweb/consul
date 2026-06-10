@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
 import { Search, User, Phone, MapPin, Clock, AlertCircle, CheckCircle, XCircle, HelpCircle, Menu, X } from 'lucide-react';
@@ -10,6 +10,7 @@ function Home() {
   const [error, setError] = useState('');
   const [errorValidacion, setErrorValidacion] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [usuario, setUsuario] = useState<any>(null);
 
   const validarCedula = (value: string): boolean => {
     if (!value) return false;
@@ -52,6 +53,15 @@ function Home() {
       setErrorValidacion('');
     }
   };
+
+  useEffect(() => {
+    try {
+      const user = JSON.parse(sessionStorage.getItem('usuario') || 'null');
+      if (user) setUsuario(user);
+    } catch (e) {
+      // ignore
+    }
+  }, []);
 
   const getStatusConfig = (reputacion: string) => {
     switch (reputacion) {
@@ -154,7 +164,19 @@ function Home() {
           </p>
         </div>
       </section>
-
+      
+      {/* Instrucciones de calificación (solo visible para GERENTE_ZONA) */}
+      {usuario?.rol === 'GERENTE_ZONA' && (
+        <div className="container mx-auto px-4 sm:px-6 max-w-7xl mb-6">
+          <div className="bg-white/90 rounded-2xl border border-indigo-100 p-4 sm:p-6 shadow-sm">
+            <h3 className="text-sm font-semibold text-indigo-700 mb-2">Instrucciones de calificación</h3>
+            <ul className="text-sm text-slate-600 space-y-1 pl-4">
+              <li>• Una vendedora que dure 45 días después del cierre será calificada como <strong>OBSERVADA</strong>.</li>
+              <li>• Una vendedora que dure 60 días después del cierre será calificada como <strong>RESTRINGIDA</strong>.</li>
+            </ul>
+          </div>
+        </div>
+      )}
       {/* Main Container */}
       <div className="container mx-auto px-4 sm:px-6 pb-12 sm:pb-16 md:pb-20 max-w-7xl">
         <div className="flex flex-col lg:flex-row justify-center items-start gap-6 md:gap-8">

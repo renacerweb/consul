@@ -21,6 +21,7 @@ export interface Vendedora {
   cedula: string;
   telefono?: string;
   direccion?: string;
+  descripcion?: string;
   reputacion: string;
   regionId?: number;
   region?: Region;

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import api from '../services/api';
 import DataTable from './DataTable';
 import Modal from './Modal';
-import { UserPlus } from 'lucide-react';
+import { UserPlus, Eye, EyeOff } from 'lucide-react';
 
 interface Usuario {
   id: number;
@@ -42,6 +42,8 @@ function UsuariosAdmin() {
     password: '',
     regionIds: [] as string[],
   });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showEditPassword, setShowEditPassword] = useState(false);
 
   const fetchUsuarios = async () => {
     try {
@@ -302,13 +304,18 @@ function UsuariosAdmin() {
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Contraseña</label>
-            <input
-              type="password"
-              value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg"
-              required
-            />
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg"
+                required
+              />
+              <button type="button" onClick={() => setShowPassword(s => !s)} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500">
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Rol</label>
@@ -388,13 +395,18 @@ function UsuariosAdmin() {
             <label className="block text-sm font-medium text-slate-700 mb-1">
               Contraseña <span className="text-xs text-slate-400">(dejar en blanco para no cambiar)</span>
             </label>
-            <input
-              type="password"
-              value={editFormData.password}
-              onChange={(e) => setEditFormData({ ...editFormData, password: e.target.value })}
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg"
-              placeholder="••••••••"
-            />
+            <div className="relative">
+              <input
+                type={showEditPassword ? 'text' : 'password'}
+                value={editFormData.password}
+                onChange={(e) => setEditFormData({ ...editFormData, password: e.target.value })}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg"
+                placeholder="••••••••"
+              />
+              <button type="button" onClick={() => setShowEditPassword(s => !s)} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500">
+                {showEditPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Rol</label>

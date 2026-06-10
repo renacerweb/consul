@@ -32,8 +32,8 @@ export async function enviarMensajeController(req: Request, res: Response) {
     const { titulo, contenido, destinatarioId, paraTodosGerentes } = req.body;
     const remitente = (req as any).usuario;
 
-    // Validar que el remitente tenga permisos (Admin o Auxiliar)
-    if (remitente.rol !== 'ADMIN' && remitente.rol !== 'AUXILIAR') {
+    // Validar que el remitente tenga permisos (Admin, Auxiliar o Gerente Regional)
+    if (remitente.rol !== 'ADMIN' && remitente.rol !== 'AUXILIAR' && remitente.rol !== 'GERENTE_REGIONAL') {
       return res.status(403).json({ error: 'No tienes permiso para enviar mensajes' });
     }
 
@@ -160,6 +160,25 @@ export async function marcarComoLeidoController(req: Request, res: Response) {
  */
 export async function listarGerentesController(req: Request, res: Response) {
   try {
+    const usuario = (req as any).usuario;
+
+    if (usuario.rol === 'GERENTE_REGIONAL') {
+      // Si es Gerente Regional, listar solo los gerentes de zona en sus regiones
+      const regionesRes = await pool.query(`SELECT "regionId" FROM "UsuarioRegion" WHERE "usuarioId" = $1`, [usuario.id]);
+      const regionIds = regionesRes.rows.map((r: any) => r.regionId);
+      if (regionIds.length === 0) return res.json([]);
+
+      const result = await pool.query(
+        `SELECT DISTINCT u.id, u.nombre, u.email
+         FROM "Usuario" u
+         JOIN "UsuarioRegion" ur ON ur."usuarioId" = u.id
+         WHERE u.rol = 'GERENTE_ZONA' AND ur."regionId" = ANY($1::int[])
+         ORDER BY u.nombre`,
+        [regionIds]
+      );
+      return res.json(result.rows);
+    }
+
     const result = await pool.query(
       `SELECT id, nombre, email FROM "Usuario" WHERE rol = 'GERENTE_ZONA' ORDER BY nombre`
     );

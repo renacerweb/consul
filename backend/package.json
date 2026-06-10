@@ -6,7 +6,8 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "nodemon src/index.ts",
-    "create-indexes": "node scripts/create_indexes.js"
+    "create-indexes": "node scripts/create_indexes.js",
+    "add-vendedora-descripcion": "node scripts/add_vendedora_descripcion.js"
   },
   "dependencies": {
     "@types/node": "^20.10.5",
