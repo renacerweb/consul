@@ -142,7 +142,7 @@ export async function registrarController(req: Request, res: Response) {
 
     console.log('📝 Registrando usuario:', { email, nombre, rol, regionIds, creadoPor: usuarioAuth.id });
 
-    const existe = await pool.query('SELECT id FROM "Usuario" WHERE email = $1', [email]);
+    const existe = await pool.query('SELECT id FROM "Usuario" WHERE LOWER(email) = LOWER($1)', [email]);
     if (existe.rows.length > 0) {
       return res.status(400).json({ error: 'El email ya está registrado' });
     }
@@ -197,11 +197,12 @@ export async function registrarController(req: Request, res: Response) {
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
 
+    const normalizedEmail = email?.toString().trim().toLowerCase();
     const result = await pool.query(
       `INSERT INTO "Usuario" (email, nombre, password, rol, "creadoPorId", activo)
        VALUES ($1, $2, $3, $4, $5, true)
        RETURNING id, email, nombre, rol`,
-      [email, nombre, passwordHash, rol, usuarioAuth.id]
+      [normalizedEmail, nombre, passwordHash, rol, usuarioAuth.id]
     );
 
     const usuarioId = result.rows[0].id;
@@ -269,7 +270,7 @@ export async function editarUsuarioController(req: Request, res: Response) {
     }
 
     const existe = await pool.query(
-      'SELECT id FROM "Usuario" WHERE email = $1 AND id != $2',
+      'SELECT id FROM "Usuario" WHERE LOWER(email) = LOWER($1) AND id != $2',
       [email, id]
     );
     if (existe.rows.length > 0) {
@@ -277,7 +278,8 @@ export async function editarUsuarioController(req: Request, res: Response) {
     }
 
     let query = 'UPDATE "Usuario" SET email = $1, nombre = $2, rol = $3';
-    const params: any[] = [email, nombre, rol];
+    const normalizedEmail = email?.toString().trim().toLowerCase();
+    const params: any[] = [normalizedEmail, nombre, rol];
     let paramIndex = 4;
 
     if (password && password.trim() !== '') {

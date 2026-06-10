@@ -31,7 +31,7 @@ export async function registrarController(req: Request, res: Response) {
     const { email, nombre, password, rol, regionId } = req.body;
     const usuarioAuth = (req as any).usuario;
 
-    const existe = await pool.query('SELECT id FROM "Usuario" WHERE email = $1', [email]);
+    const existe = await pool.query('SELECT id FROM "Usuario" WHERE LOWER(email) = LOWER($1)', [email]);
     if (existe.rows.length > 0) {
       return res.status(400).json({ error: 'El email ya está registrado' });
     }

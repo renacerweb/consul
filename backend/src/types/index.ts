@@ -30,6 +30,7 @@ export interface Vendedora {
   cedula: string;
   telefono: string | null;
   direccion: string | null;
+  descripcion?: string | null;
   reputacion: string;
   regionId: number | null;
   region?: Region;
@@ -122,6 +123,7 @@ export interface CreateVendedoraRequest {
   cedula: string;
   telefono?: string;
   direccion?: string;
+  descripcion?: string;
   reputacion?: string;
   regionId: number;
   gerenteZonaId?: number;

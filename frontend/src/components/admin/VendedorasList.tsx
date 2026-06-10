@@ -1,4 +1,4 @@
-﻿import { useEffect, useState, useCallback } from 'react';
+﻿import { useEffect, useMemo, useState, useCallback } from 'react';
 import api from '../../services/api';
 import DataTable from '../DataTable';
 import Modal from '../Modal';
@@ -10,6 +10,7 @@ interface Vendedora {
   cedula: string;
   telefono: string;
   direccion: string;
+  descripcion?: string;
   reputacion: string;
   region_nombre: string;
   creada_por_nombre: string;
@@ -62,6 +63,7 @@ function VendedorasList({ canEdit = true, canDelete = true, canCreate = true }: 
     reputacion: 'BUENA',
     telefono: '',
     direccion: '',
+    descripcion: '',
     regionId: '',
     gerenteZonaId: '',
   });
@@ -73,6 +75,27 @@ function VendedorasList({ canEdit = true, canDelete = true, canCreate = true }: 
     direccion: '',
     regionId: '',
   });
+
+  const reputacionesGenerales = ['EXCELENTE', 'BUENA', 'REGULAR', 'MALA', 'POSITIVA', 'OBSERVADA', 'RESTRINGIDA'];
+  const reputacionesGerenteZona = ['OBSERVADA', 'RESTRINGIDA'];
+
+  const reputacionesOptions = useMemo(() => {
+    if (usuario?.rol === 'GERENTE_ZONA') return reputacionesGerenteZona;
+    return reputacionesGenerales;
+  }, [usuario]);
+
+  useEffect(() => {
+    if (usuario?.rol === 'GERENTE_ZONA') {
+      setFormData(prev => ({
+        ...prev,
+        reputacion: reputacionesGerenteZona.includes(prev.reputacion) ? prev.reputacion : 'OBSERVADA'
+      }));
+      setEditFormData(prev => ({
+        ...prev,
+        reputacion: reputacionesGerenteZona.includes(prev.reputacion) ? prev.reputacion : 'OBSERVADA'
+      }));
+    }
+  }, [usuario]);
 
   useEffect(() => {
     const user = JSON.parse(sessionStorage.getItem('usuario') || '{}');
@@ -154,10 +177,13 @@ function VendedorasList({ canEdit = true, canDelete = true, canCreate = true }: 
 
   const handleEditar = (vendedora: Vendedora) => {
     setEditVendedora(vendedora);
+    const reputacionInicial = usuario?.rol === 'GERENTE_ZONA' && !reputacionesGerenteZona.includes(vendedora.reputacion)
+      ? 'OBSERVADA'
+      : vendedora.reputacion;
     setEditFormData({
       nombre: vendedora.nombre,
       cedula: vendedora.cedula,
-      reputacion: vendedora.reputacion,
+      reputacion: reputacionInicial,
       telefono: vendedora.telefono || '',
       direccion: vendedora.direccion || '',
       regionId: vendedora.regionId?.toString() || '',
@@ -191,6 +217,7 @@ function VendedorasList({ canEdit = true, canDelete = true, canCreate = true }: 
         reputacion: formData.reputacion,
         telefono: formData.telefono,
         direccion: formData.direccion,
+        descripcion: formData.descripcion,
       };
       
       if (usuario?.rol !== 'GERENTE_ZONA') {
@@ -203,7 +230,7 @@ function VendedorasList({ canEdit = true, canDelete = true, canCreate = true }: 
       
       await api.post('/vendedora', payload);
       setShowModal(false);
-      setFormData({ nombre: '', cedula: '', reputacion: 'BUENA', telefono: '', direccion: '', regionId: '', gerenteZonaId: '' });
+      setFormData({ nombre: '', cedula: '', reputacion: 'BUENA', telefono: '', direccion: '', descripcion: '', regionId: '', gerenteZonaId: '' });
       fetchVendedoras();
       alert('✅ Vendedora registrada exitosamente');
     } catch (error: any) {
@@ -237,10 +264,6 @@ function VendedorasList({ canEdit = true, canDelete = true, canCreate = true }: 
     };
     return colors[reputacion] || 'bg-gray-100 text-gray-800';
   };
-
-  const reputacionesOptions = [
-    'EXCELENTE', 'BUENA', 'REGULAR', 'MALA', 'POSITIVA', 'OBSERVADA', 'RESTRINGIDA'
-  ];
 
   const columns = [
     { key: 'nombre', label: 'Nombre' },
@@ -297,34 +320,41 @@ function VendedorasList({ canEdit = true, canDelete = true, canCreate = true }: 
 
   return (
     <div>
-      {/* Filtros y búsqueda */}
-      <div className="mb-6 flex flex-wrap gap-4 items-end">
-        <div className="flex-1 min-w-[200px]">
-          <label className="block text-sm font-medium text-slate-700 mb-1">Buscar</label>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Nombre o cédula..."
-              value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg"
-            />
-          </div>
+      {usuario?.rol === 'GERENTE_ZONA' && (
+        <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+          <strong>Atención Gerente de Zona:</strong> solo tienes disponible la opción de reputación <strong>OBSERVADA</strong> o <strong>RESTRINGIDA</strong> para las vendedoras.
         </div>
+      )}
+      {/* Filtros y búsqueda */}
+      <div className="mb-6 grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] items-end">
+        <div className="grid gap-4 md:grid-cols-[1fr_auto] w-full">
+          <div className="min-w-0">
+            <label className="block text-sm font-medium text-slate-700 mb-1">Buscar</label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Nombre o cédula..."
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg"
+              />
+            </div>
+          </div>
 
-        <div className="w-48">
-          <label className="block text-sm font-medium text-slate-700 mb-1">Región</label>
-          <select
-            value={filtroRegion}
-            onChange={(e) => setFiltroRegion(e.target.value)}
-            className="w-full px-3 py-2 border border-slate-200 rounded-lg"
-          >
-            <option value="">Todas</option>
-            {regiones.map(r => (
-              <option key={r.id} value={r.nombre}>{r.nombre}</option>
-            ))}
-          </select>
+          <div className="w-full sm:w-48">
+            <label className="block text-sm font-medium text-slate-700 mb-1">Región</label>
+            <select
+              value={filtroRegion}
+              onChange={(e) => setFiltroRegion(e.target.value)}
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg"
+            >
+              <option value="">Todas</option>
+              {regiones.map(r => (
+                <option key={r.id} value={r.nombre}>{r.nombre}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {canCreate && (
@@ -380,6 +410,9 @@ function VendedorasList({ canEdit = true, canDelete = true, canCreate = true }: 
                 <option key={opt} value={opt}>{opt}</option>
               ))}
             </select>
+            {usuario?.rol === 'GERENTE_ZONA' && (
+              <p className="mt-2 text-sm text-amber-700">Solo puedes elegir <strong>OBSERVADA</strong> o <strong>RESTRINGIDA</strong>.</p>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Teléfono</label>
@@ -397,6 +430,16 @@ function VendedorasList({ canEdit = true, canDelete = true, canCreate = true }: 
               onChange={(e) => setFormData({ ...formData, direccion: e.target.value })}
               className="w-full px-3 py-2 border border-slate-200 rounded-lg"
               rows={2}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Descripción</label>
+            <textarea
+              value={formData.descripcion}
+              onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg"
+              rows={3}
+              placeholder="Breve descripción o comentarios sobre la vendedora"
             />
           </div>
           
@@ -483,6 +526,9 @@ function VendedorasList({ canEdit = true, canDelete = true, canCreate = true }: 
                 <option key={opt} value={opt}>{opt}</option>
               ))}
             </select>
+            {usuario?.rol === 'GERENTE_ZONA' && (
+              <p className="mt-2 text-sm text-amber-700">Solo puedes elegir <strong>OBSERVADA</strong> o <strong>RESTRINGIDA</strong>.</p>
+            )}
           </div>
           <div className="flex justify-end gap-3 pt-4">
             <button type="button" onClick={() => setShowEditModal(false)} className="px-4 py-2 border border-slate-200 rounded-lg">
@@ -521,6 +567,10 @@ function VendedorasList({ canEdit = true, canDelete = true, canCreate = true }: 
                 <MapPin className="w-4 h-4 text-slate-400 mt-0.5" />
                 <span className="w-24 font-medium text-slate-600">Dirección:</span>
                 <span className="text-slate-800 flex-1">{selectedVendedora.direccion || 'No registrada'}</span>
+              </div>
+              <div className="flex items-start gap-2 text-sm">
+                <span className="w-24 font-medium text-slate-600">Descripción:</span>
+                <span className="text-slate-800 flex-1">{selectedVendedora.descripcion || 'No disponible'}</span>
               </div>
               <div className="flex items-center gap-2 text-sm">
                 <span className="w-24 font-medium text-slate-600">Creada por:</span>

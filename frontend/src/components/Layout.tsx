@@ -19,6 +19,23 @@ const Layout = ({ children, title, menuItems, sidebarBg, sidebarBorder, sidebarH
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  const getRoleLabel = (rol?: string) => {
+    switch (rol) {
+      case 'ADMIN':
+        return 'Administrador';
+      case 'GERENTE_REGIONAL':
+        return 'Gerente Regional';
+      case 'GERENTE_ZONA':
+        return 'Gerente de Zona';
+      case 'AUXILIAR':
+        return 'Auxiliar';
+      default:
+        return 'Invitado';
+    }
+  };
+
+  const roleLabel = getRoleLabel(usuario?.rol);
+
   const handleLogout = () => {
     logout();
     navigate('/login');
@@ -29,7 +46,7 @@ const Layout = ({ children, title, menuItems, sidebarBg, sidebarBorder, sidebarH
       <div className="md:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-slate-200 shadow-sm">
         <div>
           <h1 className="text-lg font-bold text-slate-900">Sistema Interno</h1>
-          <p className="text-sm text-slate-600">Rol: {title}</p>
+          <p className="text-sm text-slate-600">Rol: {roleLabel}</p>
         </div>
         <button
           onClick={() => setMobileOpen((prev) => !prev)}
@@ -48,7 +65,7 @@ const Layout = ({ children, title, menuItems, sidebarBg, sidebarBorder, sidebarH
             <div className={`p-5 border-b ${sidebarBorder}`}>
               <h1 className={`text-xl font-bold ${panelTitle === 'Sistema interno' ? 'text-white' : panelTitle}`}>Sistema Interno</h1>
               <div className="mt-3 flex items-center gap-2 text-xs text-gray-200">
-                <span>Rol: <span className="text-white font-medium">{title}</span></span>
+                <span>Rol: <span className="text-white font-medium">{roleLabel}</span></span>
               </div>
               {usuario && (
                 <div className="mt-2 text-xs text-gray-300 truncate">
