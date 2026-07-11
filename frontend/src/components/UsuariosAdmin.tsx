@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import api from '../services/api';
 import DataTable from './DataTable';
 import Modal from './Modal';
-import { UserPlus, Eye, EyeOff } from 'lucide-react';
+import { useToast } from '../contexts/ToastContext';
+import { UserPlus, Eye, EyeOff, Edit, Trash2 } from 'lucide-react';
 
 interface Usuario {
   id: number;
@@ -44,6 +45,7 @@ function UsuariosAdmin() {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showEditPassword, setShowEditPassword] = useState(false);
+  const { showToast } = useToast();
 
   const fetchUsuarios = async () => {
     try {
@@ -106,7 +108,7 @@ function UsuariosAdmin() {
     e.preventDefault();
 
     if ((formData.rol === 'GERENTE_REGIONAL' || formData.rol === 'GERENTE_ZONA') && formData.regionIds.length === 0) {
-      alert('❌ Debes seleccionar al menos una región para este rol');
+      showToast('❌ Debes seleccionar al menos una región para este rol', 'warning');
       return;
     }
 
@@ -124,9 +126,9 @@ function UsuariosAdmin() {
       setShowModal(false);
       setFormData({ email: '', nombre: '', password: '', rol: 'GERENTE_REGIONAL', regionIds: [] });
       fetchUsuarios();
-      alert('✅ Usuario creado exitosamente');
+      showToast('✅ Usuario creado exitosamente', 'success');
     } catch (error: any) {
-      alert('❌ Error al crear usuario: ' + (error.response?.data?.error || 'Error desconocido'));
+      showToast('❌ Error al crear usuario: ' + (error.response?.data?.error || 'Error desconocido'), 'error');
     }
   };
 
@@ -135,7 +137,7 @@ function UsuariosAdmin() {
     if (!editUsuario) return;
 
     if ((editFormData.rol === 'GERENTE_REGIONAL' || editFormData.rol === 'GERENTE_ZONA') && editFormData.regionIds.length === 0) {
-      alert('❌ Debes seleccionar al menos una región para este rol');
+      showToast('❌ Debes seleccionar al menos una región para este rol', 'warning');
       return;
     }
 
@@ -159,9 +161,9 @@ function UsuariosAdmin() {
       await api.put(`/auth/usuarios/${editUsuario.id}`, updateData);
       setShowEditModal(false);
       fetchUsuarios();
-      alert('✅ Usuario actualizado correctamente');
+      showToast('✅ Usuario actualizado correctamente', 'success');
     } catch (error: any) {
-      alert('❌ Error al actualizar usuario: ' + (error.response?.data?.error || 'Error desconocido'));
+      showToast('❌ Error al actualizar usuario: ' + (error.response?.data?.error || 'Error desconocido'), 'error');
     }
   };
 
@@ -170,9 +172,9 @@ function UsuariosAdmin() {
       try {
         await api.delete(`/auth/usuarios/${id}`);
         fetchUsuarios();
-        alert('✅ Usuario eliminado');
+        showToast('✅ Usuario eliminado', 'success');
       } catch (error) {
-        alert('❌ Error al eliminar usuario');
+        showToast('❌ Error al eliminar usuario', 'error');
       }
     }
   };
@@ -223,16 +225,18 @@ function UsuariosAdmin() {
         <div className="flex gap-2">
           <button
             onClick={() => openEditModal(row)}
-            className="text-indigo-600 hover:text-indigo-800"
+            className="inline-flex items-center justify-center w-9 h-9 rounded-full text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition"
+            title="Editar usuario"
           >
-            ✏️ Editar
+            <Edit className="w-4 h-4" />
           </button>
           {row.rol !== 'ADMIN' && (
             <button
               onClick={() => handleDelete(row.id)}
-              className="text-rose-600 hover:text-rose-800"
+              className="inline-flex items-center justify-center w-9 h-9 rounded-full text-rose-600 hover:text-rose-800 hover:bg-rose-100 transition"
+              title="Eliminar usuario"
             >
-              🗑️ Eliminar
+              <Trash2 className="w-4 h-4" />
             </button>
           )}
         </div>

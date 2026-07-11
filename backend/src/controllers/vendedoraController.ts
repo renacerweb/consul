@@ -2,6 +2,13 @@
 import pool from '../db';
 import { registrarConsultaAuditoria } from '../middleware/security';
 
+const normalizeReputacion = (value?: string) => {
+  const reputacion = value?.toString().trim().toUpperCase();
+  if (!reputacion) return 'BUENA';
+  if (reputacion === 'ACTIVA') return 'BUENA';
+  return reputacion;
+};
+
 // =====================================================
 // LISTAR VENDEDORAS (con filtros por rol)
 // =====================================================
@@ -92,6 +99,7 @@ export async function buscarVendedoraController(req: Request, res: Response) {
     const vendedora = exitosa ? vendedoraResult.rows[0] : null;
 
     let historial = [];
+    let campaniaHistorial = [];
     if (exitosa && vendedora.id) {
       const historialResult = await pool.query(
         `SELECT h.*, u.nombre as gerente_zona_nombre
@@ -102,6 +110,16 @@ export async function buscarVendedoraController(req: Request, res: Response) {
         [vendedora.id]
       );
       historial = historialResult.rows;
+
+      const campaniaHistorialResult = await pool.query(
+        `SELECT h.id, h."campaniaId", c.nombre as campania_nombre, c.descripcion as campania_descripcion, h.accion, h."createdAt"
+         FROM "VendedoraCampaniaHistorial" h
+         LEFT JOIN "Campania" c ON h."campaniaId" = c.id
+         WHERE h."vendedoraId" = $1
+         ORDER BY h."createdAt" DESC`,
+        [vendedora.id]
+      );
+      campaniaHistorial = campaniaHistorialResult.rows;
     }
 
     await registrarConsultaAuditoria(
@@ -113,7 +131,51 @@ export async function buscarVendedoraController(req: Request, res: Response) {
     );
 
     if (!exitosa) {
-      return res.status(404).json({ mensaje: 'Vendedora no encontrada' });
+      // Si no se encontró vendedora, intentar buscar un GerenteZona por cédula
+      const gerenteResult = await pool.query(
+        `SELECT gz.*, u.email as usuario_email FROM "GerenteZona" gz LEFT JOIN "Usuario" u ON gz."usuarioId" = u.id WHERE gz.cedula = $1`,
+        [cedula]
+      );
+      if (gerenteResult.rows.length === 0) {
+        return res.status(404).json({ mensaje: 'Vendedora o gerente no encontrado' });
+      }
+
+      const gerente = gerenteResult.rows[0];
+
+      // Obtener reportes del gerente
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS "GerenteZonaReporte" (
+          id SERIAL PRIMARY KEY,
+          "gerenteZonaId" INTEGER NOT NULL,
+          reputacion VARCHAR(32) NOT NULL,
+          comentario TEXT,
+          "creadoPorId" INTEGER,
+          "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT now()
+        )
+      `);
+
+      const reportesRes = await pool.query(
+        `SELECT r.*, u.nombre as creadoPorNombre FROM "GerenteZonaReporte" r LEFT JOIN "Usuario" u ON r."creadoPorId" = u.id WHERE r."gerenteZonaId" = $1 ORDER BY r."createdAt" DESC`,
+        [gerente.id]
+      );
+
+      return res.json({
+        id: null,
+        nombre: gerente.nombre,
+        cedula: gerente.cedula,
+        telefono: gerente.telefono || null,
+        direccion: null,
+        descripcion: gerente.descripcion || null,
+        reputacion: gerente.reputacion || 'BUENA',
+        region_nombre: gerente.region || null,
+        creada_por_nombre: gerente.usuario_email || 'Sistema',
+        gerente_zona_nombre: gerente.nombre,
+        historial: reportesRes.rows.map((r: any) => ({
+          gerenteZonaNombre: r.creadoPorNombre || 'Admin',
+          reputacion: r.reputacion,
+          fechaReporte: r.createdAt
+        }))
+      });
     }
 
     res.json({
@@ -131,6 +193,14 @@ export async function buscarVendedoraController(req: Request, res: Response) {
         gerenteZonaNombre: h.gerente_zona_nombre,
         reputacion: h.reputacion,
         fechaReporte: h.fechaReporte
+      })),
+      campaniaHistorial: campaniaHistorial.map((h: any) => ({
+        id: h.id,
+        campaniaId: h.campaniaId,
+        campaniaNombre: h.campania_nombre,
+        campaniaDescripcion: h.campania_descripcion,
+        accion: h.accion,
+        fecha: h.createdAt,
       }))
     });
   } catch (error: any) {
@@ -147,11 +217,12 @@ export async function crearVendedoraController(req: Request, res: Response) {
     const { nombre, cedula, reputacion, telefono, direccion, descripcion, regionId, gerenteZonaId } = req.body;
     const usuario = (req as any).usuario;
     const reputacionUpper = reputacion?.toString().toUpperCase();
-    const reputacionesGerenteZona = ['OBSERVADA', 'RESTRINGIDA'];
+    const reputacionNormalizada = normalizeReputacion(reputacionUpper);
+    const reputacionesGerenteZona = ['BUENA', 'ACTIVA', 'OBSERVADA', 'RESTRINGIDA'];
 
     if (usuario.rol === 'GERENTE_ZONA') {
       if (!reputacionUpper || !reputacionesGerenteZona.includes(reputacionUpper)) {
-        return res.status(403).json({ error: 'Solo puedes asignar OBSERVADA o RESTRINGIDA como reputación' });
+        return res.status(403).json({ error: 'Solo puedes asignar ACTIVA, OBSERVADA o RESTRINGIDA como reputación' });
       }
     }
 
@@ -238,7 +309,7 @@ export async function crearVendedoraController(req: Request, res: Response) {
       await pool.query(
         `INSERT INTO "HistorialVendedora" ("vendedoraId", "gerenteZonaId", reputacion)
          VALUES ($1, $2, $3)`,
-        [vendedoraId, finalGerenteZonaId, reputacionUpper || 'BUENA']
+        [vendedoraId, finalGerenteZonaId, normalizeReputacion(reputacionUpper)]
       );
       
       res.status(200).json({ 
@@ -255,7 +326,7 @@ export async function crearVendedoraController(req: Request, res: Response) {
         `INSERT INTO "Vendedora" (nombre, cedula, reputacion, telefono, direccion, descripcion, "regionId", "creadaPorId", "gerenteZonaId")
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
          RETURNING *`,
-        [nombre, cedula, reputacionUpper || 'BUENA', telefono || null, direccion || null, descripcion || null, finalRegionId, creadaPorId, finalGerenteZonaId]
+        [nombre, cedula, reputacionNormalizada, telefono || null, direccion || null, descripcion || null, finalRegionId, creadaPorId, finalGerenteZonaId]
       );
       
       vendedoraId = result.rows[0].id;
@@ -263,7 +334,7 @@ export async function crearVendedoraController(req: Request, res: Response) {
       await pool.query(
         `INSERT INTO "HistorialVendedora" ("vendedoraId", "gerenteZonaId", reputacion)
          VALUES ($1, $2, $3)`,
-        [vendedoraId, finalGerenteZonaId, reputacionUpper || 'BUENA']
+        [vendedoraId, finalGerenteZonaId, normalizeReputacion(reputacionUpper)]
       );
       
       console.log(`✅ Vendedora creada exitosamente (ID: ${vendedoraId})`);
@@ -290,11 +361,12 @@ export async function actualizarVendedoraController(req: Request, res: Response)
     const { reputacion } = req.body;
     const usuario = (req as any).usuario;
     const reputacionUpper = reputacion?.toString().toUpperCase();
-    const reputacionesGerenteZona = ['OBSERVADA', 'RESTRINGIDA'];
+    const reputacionNormalizada = normalizeReputacion(reputacionUpper);
+    const reputacionesGerenteZona = ['BUENA', 'ACTIVA', 'OBSERVADA', 'RESTRINGIDA'];
 
     if (usuario.rol === 'GERENTE_ZONA') {
       if (!reputacionUpper || !reputacionesGerenteZona.includes(reputacionUpper)) {
-        return res.status(403).json({ error: 'Solo puedes asignar OBSERVADA o RESTRINGIDA como reputación' });
+        return res.status(403).json({ error: 'Solo puedes asignar ACTIVA, OBSERVADA o RESTRINGIDA como reputación' });
       }
     }
 
@@ -332,11 +404,11 @@ export async function actualizarVendedoraController(req: Request, res: Response)
       return res.status(403).json({ error: 'No tienes permiso para editar esta vendedora' });
     }
 
-    await pool.query(`UPDATE "Vendedora" SET reputacion = $1 WHERE id = $2`, [reputacionUpper || reputacion, id]);
+    await pool.query(`UPDATE "Vendedora" SET reputacion = $1 WHERE id = $2`, [reputacionNormalizada, id]);
     await pool.query(
       `INSERT INTO "HistorialVendedora" ("vendedoraId", "gerenteZonaId", reputacion)
        VALUES ($1, $2, $3)`,
-      [id, vendedora.gerenteZonaId, reputacionUpper || reputacion]
+      [id, vendedora.gerenteZonaId, reputacionNormalizada]
     );
 
     res.json({ mensaje: 'Reputación actualizada correctamente' });

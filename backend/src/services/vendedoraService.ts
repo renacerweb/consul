@@ -2,6 +2,13 @@
 import pool from '../db';
 import { Vendedora, HistorialVendedora } from '../types';
 
+const normalizeReputacion = (value?: string) => {
+  const reputacion = value?.toString().trim().toUpperCase();
+  if (!reputacion) return 'BUENA';
+  if (reputacion === 'ACTIVA') return 'BUENA';
+  return reputacion;
+};
+
 // =====================================================
 // LISTAR VENDEDORAS CON TODAS SUS RELACIONES
 // =====================================================
@@ -99,6 +106,7 @@ export async function crearVendedora(data: {
   }
 
   // Insertar vendedora
+  const reputacionNormalizada = normalizeReputacion(data.reputacion);
   const result = await pool.query(
     `INSERT INTO "Vendedora" (nombre, cedula, reputacion, telefono, direccion, "regionId", "creadaPorId", "gerenteZonaId")
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
@@ -106,7 +114,7 @@ export async function crearVendedora(data: {
     [
       data.nombre, 
       data.cedula, 
-      data.reputacion || 'BUENA', 
+      reputacionNormalizada, 
       data.telefono || null, 
       data.direccion || null, 
       data.regionId, 
@@ -119,7 +127,7 @@ export async function crearVendedora(data: {
   await pool.query(
     `INSERT INTO "HistorialVendedora" ("vendedoraId", "gerenteZonaId", reputacion)
      VALUES ($1, $2, $3)`,
-    [result.rows[0].id, data.gerenteZonaId || null, data.reputacion || 'BUENA']
+    [result.rows[0].id, data.gerenteZonaId || null, reputacionNormalizada]
   );
 
   return result.rows[0];

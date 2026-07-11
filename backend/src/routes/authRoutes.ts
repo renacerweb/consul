@@ -8,7 +8,8 @@ import {
   eliminarUsuarioController,
   listarRegionesController,
   listarGerentesZonaPorRegionController,
-  listarRegionesPorUsuarioController
+  listarRegionesPorUsuarioController,
+  pausarUsuarioController,
 } from '../controllers/usuarioController';
 import { autenticar, permitirRoles } from '../middleware/auth';
 
@@ -30,6 +31,7 @@ router.get('/me', autenticar, meController);
 router.get('/usuarios', autenticar, permitirRoles('ADMIN', 'GERENTE_REGIONAL'), listarUsuariosController);
 router.post('/registrar', autenticar, permitirRoles('ADMIN', 'GERENTE_REGIONAL'), registrarController);
 router.put('/usuarios/:id', autenticar, permitirRoles('ADMIN', 'GERENTE_REGIONAL'), editarUsuarioController);
+router.put('/usuarios/:id/activo', autenticar, permitirRoles('ADMIN', 'GERENTE_REGIONAL'), pausarUsuarioController);
 router.delete('/usuarios/:id', autenticar, permitirRoles('ADMIN', 'GERENTE_REGIONAL'), eliminarUsuarioController);
 
 // =====================================================

@@ -1,5 +1,6 @@
 ﻿import { useEffect, useState } from 'react';
 import api from '../../services/api';
+import { displayReputacion } from '../../utils/reputacion';
 import { Users, UserPlus, TrendingUp, ShoppingBag, Shield, UsersRound } from 'lucide-react';
 
 interface Stats {
@@ -162,7 +163,7 @@ function DashboardStats() {
               return (
                 <div key={item.reputacion}>
                   <div className="flex justify-between text-sm mb-1">
-                    <span className="text-gray-600">{item.reputacion}</span>
+                    <span className="text-gray-600">{displayReputacion(item.reputacion)}</span>
                     <span className="font-medium text-gray-800">{item.total}</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">

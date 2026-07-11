@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import LayoutGerenteRegional from '../../components/LayoutGerenteRegional';
 import api from '../../services/api';
 import LoadingSpinner from '../../components/LoadingSpinner';
+import { useToast } from '../../contexts/ToastContext';
 
 interface Mensaje {
   id: number;
@@ -95,6 +96,7 @@ function GerenteRegionalMensajes() {
   const [loading, setLoading] = useState(true);
   const [gerentes, setGerentes] = useState<Gerente[]>([]);
   const [showModal, setShowModal] = useState(false);
+  const { showToast } = useToast();
 
   const fetchMensajes = useCallback(async () => {
     setLoading(true);
@@ -123,10 +125,15 @@ function GerenteRegionalMensajes() {
   }, [fetchMensajes, fetchGerentes]);
 
   const handleSend = useCallback(async (data: any) => {
-    await api.post('/mensajes/enviar', data);
-    await fetchMensajes();
-    alert('Mensaje enviado');
-  }, [fetchMensajes]);
+    try {
+      await api.post('/mensajes/enviar', data);
+      await fetchMensajes();
+      showToast('Mensaje enviado', 'success');
+    } catch (err) {
+      showToast('Error al enviar mensaje', 'error');
+      console.error('Error al enviar mensaje', err);
+    }
+  }, [fetchMensajes, showToast]);
 
   const marcarLeido = useCallback(async (id: number) => {
     try {

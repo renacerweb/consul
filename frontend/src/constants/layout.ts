@@ -1,3 +1,5 @@
+import { isGerenteZonaCampanasEnabled, isGerenteColeccionesEnabled } from '../utils/featureFlags';
+
 // Constantes para layouts y menús
 export interface MenuItem {
   to: string;
@@ -19,7 +21,10 @@ export const LAYOUT_CONFIGS: Record<string, LayoutConfig> = {
   ADMIN: {
     menuItems: [
       { to: '/admin', label: 'Inicio', icon: '📊' },
-      { to: '/admin/vendedoras', label: 'Vendedoras', icon: '👩' },
+      { to: '/admin/vendedoras', label: 'Todas', icon: '👩' },
+      { to: '/admin/vendedoras-activas', label: 'Registro Activas', icon: '✅' },
+      { to: 'action:export_vendedoras', label: 'Exportar', icon: '⬇️' },
+      { to: '/admin/vendedoras-malas', label: 'Registro Malas', icon: '⚠️' },
       { to: '/admin/usuarios', label: 'Usuarios', icon: '👥' },
       { to: '/admin/mensajes', label: 'Mensajes', icon: '📬' },
       { to: '/admin/seguridad', label: 'Seguridad', icon: '🛡️' },
@@ -32,12 +37,31 @@ export const LAYOUT_CONFIGS: Record<string, LayoutConfig> = {
     showMobileMenu: true,
   },
   GERENTE_REGIONAL: {
-    menuItems: [
-      { to: '/gerente-regional', label: 'Inicio', icon: '📊' },
-      { to: '/gerente-regional/usuarios', label: 'Usuarios', icon: '👥' },
-      { to: '/gerente-regional/vendedoras', label: 'Vendedoras', icon: '👩' },
-      { to: '/gerente-regional/mensajes', label: 'Mensajes', icon: '📬' },
-    ],
+    get menuItems() {
+      const items = [
+        { to: '/gerente-regional', label: 'Inicio', icon: '📊' },
+        { to: '/gerente-regional/usuarios', label: 'Usuarios', icon: '👥' },
+        { to: '/gerente-regional/zonas', label: 'Reporte Gerentes', icon: '📍' },
+        { to: '/gerente-regional/gerentes-malas', label: 'Cuentas Gerentes', icon: '🛑' },
+        { to: '/gerente-regional/vendedoras', label: 'Todas', icon: '👩' },
+        { to: '/gerente-regional/vendedoras-activas', label: 'Registro Activas', icon: '✅' },
+        { to: 'action:export_vendedoras', label: 'Exportar', icon: '⬇️' },
+        { to: '/gerente-regional/vendedoras-malas', label: 'Registro Malas', icon: '⚠️' },
+        { to: '/gerente-regional/mensajes', label: 'Mensajes', icon: '📬' },
+      ];
+
+      // Colecciones controlado por su propia bandera
+      if (isGerenteColeccionesEnabled()) {
+        items.splice(8, 0, { to: '/gerente-regional/colecciones', label: 'Colecciones', icon: '🧩' });
+      }
+
+      if (isGerenteZonaCampanasEnabled()) {
+        items.splice(9, 0, { to: '/gerente-regional/campanas', label: 'Campañas', icon: '🎯' });
+        items.splice(10, 0, { to: '/gerente-regional/campanas-historial', label: 'Historial Campañas', icon: '📜' });
+      }
+
+      return items;
+    },
     sidebarBg: 'bg-emerald-700',
     sidebarBorder: 'border-emerald-600',
     sidebarHover: 'bg-emerald-800',
@@ -46,11 +70,20 @@ export const LAYOUT_CONFIGS: Record<string, LayoutConfig> = {
     showMobileMenu: true,
   },
   GERENTE: {
-    menuItems: [
-      { to: '/gerente', label: 'Inicio', icon: '📊' },
-      { to: '/gerente/vendedoras', label: 'Vendedoras', icon: '👩' },
-      { to: '/gerente/mensajes', label: 'Mensajes', icon: '📬' },
-    ],
+    get menuItems() {
+      const items = [
+        { to: '/gerente', label: 'Inicio', icon: '📊' },
+        { to: '/gerente/vendedoras-activas', label: 'Registro Activas', icon: '✅' },
+        { to: '/gerente/vendedoras-malas', label: 'Registro Malas', icon: '⚠️' },
+        { to: '/gerente/mensajes', label: 'Mensajes', icon: '📬' },
+      ];
+
+      if (isGerenteZonaCampanasEnabled()) {
+        items.splice(3, 0, { to: '/gerente/campanas', label: 'Campañas', icon: '🎯' });
+      }
+
+      return items;
+    },
     sidebarBg: 'bg-amber-700',
     sidebarBorder: 'border-amber-600',
     sidebarHover: 'bg-amber-800',

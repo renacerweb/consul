@@ -68,7 +68,7 @@ function Home() {
       case 'EXCELENTE':
         return { color: 'green', text: 'Excelente - Vendedora destacada', icon: CheckCircle, bgLight: 'bg-green-50', borderLight: 'border-green-100', textColor: 'text-green-700', iconColor: 'text-green-600' };
       case 'BUENA':
-        return { color: 'blue', text: 'Buena - Vendedora confiable', icon: CheckCircle, bgLight: 'bg-blue-50', borderLight: 'border-blue-100', textColor: 'text-blue-700', iconColor: 'text-blue-600' };
+        return { color: 'blue', text: 'Activa - Vendedora confiable', icon: CheckCircle, bgLight: 'bg-blue-50', borderLight: 'border-blue-100', textColor: 'text-blue-700', iconColor: 'text-blue-600' };
       case 'POSITIVA':
         return { color: 'emerald', text: 'Positiva - Sin novedad', icon: CheckCircle, bgLight: 'bg-emerald-50', borderLight: 'border-emerald-100', textColor: 'text-emerald-700', iconColor: 'text-emerald-600' };
       case 'REGULAR':
@@ -300,7 +300,7 @@ function Home() {
                               Reportado por: <span className="text-indigo-600">{h.gerenteZonaNombre || 'Gerente'}</span>
                             </p>
                             <span className={`text-xs px-2 py-0.5 rounded-full ${getReputacionBadge(h.reputacion)}`}>
-                              {h.reputacion}
+                              {displayReputacion(h.reputacion)}
                             </span>
                           </div>
                           <p className="text-xs text-slate-400 mt-1">
