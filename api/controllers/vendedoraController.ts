@@ -2,6 +2,13 @@
 import { Request, Response } from 'express';
 import pool from '../db';
 
+const normalizeReputacion = (value?: string) => {
+  const reputacion = value?.toString().trim().toUpperCase();
+  if (!reputacion) return 'BUENA';
+  if (reputacion === 'ACTIVA') return 'BUENA';
+  return reputacion;
+};
+
 export async function listarVendedorasController(req: Request, res: Response) {
   try {
     const usuario = (req as any).usuario;
@@ -93,10 +100,14 @@ export async function crearVendedoraController(req: Request, res: Response) {
   try {
     const { nombre, cedula, reputacion, telefono, direccion, gerenteZonaId } = req.body;
     const usuario = (req as any).usuario;
+    const reputacionUpper = reputacion?.toString().toUpperCase();
+    const reputacionNormalizada = normalizeReputacion(reputacionUpper);
+    const reputacionesGerenteZona = ['BUENA', 'ACTIVA', 'OBSERVADA', 'RESTRINGIDA'];
 
-    const existeVendedora = await pool.query('SELECT id FROM "Vendedora" WHERE cedula = $1', [cedula]);
-    if (existeVendedora.rows.length > 0) {
-      return res.status(400).json({ error: 'Ya existe una vendedora con esta cédula' });
+    if (usuario.rol === 'GERENTE_ZONA') {
+      if (!reputacionUpper || !reputacionesGerenteZona.includes(reputacionUpper)) {
+        return res.status(403).json({ error: 'Solo puedes asignar ACTIVA, OBSERVADA o RESTRINGIDA como reputación' });
+      }
     }
 
     let regionId = null;
@@ -125,13 +136,13 @@ export async function crearVendedoraController(req: Request, res: Response) {
       `INSERT INTO "Vendedora" (nombre, cedula, reputacion, telefono, direccion, "regionId", "creadaPorId", "gerenteZonaId")
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING *`,
-      [nombre, cedula, reputacion || 'BUENA', telefono || null, direccion || null, regionId, creadaPorId, finalGerenteZonaId]
+      [nombre, cedula, reputacionNormalizada, telefono || null, direccion || null, regionId, creadaPorId, finalGerenteZonaId]
     );
 
     await pool.query(
       `INSERT INTO "HistorialVendedora" ("vendedoraId", "gerenteZonaId", reputacion)
        VALUES ($1, $2, $3)`,
-      [result.rows[0].id, finalGerenteZonaId, reputacion || 'BUENA']
+      [result.rows[0].id, finalGerenteZonaId, reputacionNormalizada]
     );
 
     res.status(201).json({ mensaje: 'Vendedora registrada correctamente', vendedora: result.rows[0] });
@@ -146,6 +157,15 @@ export async function actualizarVendedoraController(req: Request, res: Response)
     const id = parseInt(req.params.id as string);
     const { reputacion } = req.body;
     const usuario = (req as any).usuario;
+    const reputacionUpper = reputacion?.toString().toUpperCase();
+    const reputacionNormalizada = normalizeReputacion(reputacionUpper);
+    const reputacionesGerenteZona = ['BUENA', 'ACTIVA', 'OBSERVADA', 'RESTRINGIDA'];
+
+    if (usuario.rol === 'GERENTE_ZONA') {
+      if (!reputacionUpper || !reputacionesGerenteZona.includes(reputacionUpper)) {
+        return res.status(403).json({ error: 'Solo puedes asignar ACTIVA, OBSERVADA o RESTRINGIDA como reputación' });
+      }
+    }
 
     const vendedoraResult = await pool.query('SELECT * FROM "Vendedora" WHERE id = $1', [id]);
     if (vendedoraResult.rows.length === 0) {
@@ -163,11 +183,11 @@ export async function actualizarVendedoraController(req: Request, res: Response)
       return res.status(403).json({ error: 'No tienes permiso para editar esta vendedora' });
     }
 
-    await pool.query(`UPDATE "Vendedora" SET reputacion = $1 WHERE id = $2`, [reputacion, id]);
+    await pool.query(`UPDATE "Vendedora" SET reputacion = $1 WHERE id = $2`, [reputacionNormalizada, id]);
     await pool.query(
       `INSERT INTO "HistorialVendedora" ("vendedoraId", "gerenteZonaId", reputacion)
        VALUES ($1, $2, $3)`,
-      [id, vendedora.gerenteZonaId, reputacion]
+      [id, vendedora.gerenteZonaId, reputacionNormalizada]
     );
 
     res.json({ mensaje: 'Vendedora actualizada correctamente' });

@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useToast } from '../../contexts/ToastContext';
 import LayoutAdmin from '../../components/LayoutAdmin';
 import api from '../../services/api';
 
@@ -212,6 +213,7 @@ function AdminMensajes() {
   const { mensajes, loading, error: mensajesError, fetchMensajes, marcarLeido } = useMensajes();
   const { gerentes, error: gerentesError, fetchGerentes } = useGerentes();
   const [showModal, setShowModal] = useState(false);
+  const { showToast } = useToast();
 
   useEffect(() => {
     fetchMensajes();
@@ -222,11 +224,12 @@ function AdminMensajes() {
     try {
       await api.post('/mensajes/enviar', data);
       fetchMensajes();
-      alert(MESSAGES.SUCCESS_SEND);
+      showToast(MESSAGES.SUCCESS_SEND, 'success');
     } catch (err) {
+      showToast(MESSAGES.ERROR_SEND, 'error');
       throw err;
     }
-  }, [fetchMensajes]);
+  }, [fetchMensajes, showToast]);
 
   const mensajesMemo = useMemo(() => mensajes, [mensajes]);
 

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { vendedoraService } from '../services/api';
 import { Vendedora } from '../types';
+import { displayReputacion } from '../utils/reputacion';
 
 interface Props {
   isOpen: boolean;
@@ -8,7 +9,7 @@ interface Props {
 }
 
 const OPCIONES_REPUTACION = [
-  'BUENA',
+  'ACTIVA',
   'REGULAR',
   'DUDOSA',
   'MALA',
@@ -79,14 +80,14 @@ export const ReporteVendedoras = ({ isOpen, onClose }: Props) => {
                   className="form-checkbox"
                 />
                 <span className={`px-2 py-0.5 rounded-full text-xs font-medium
-                  ${rep === 'BUENA' ? 'bg-green-100 text-green-800' : ''}
+                  ${rep === 'ACTIVA' ? 'bg-green-100 text-green-800' : ''}
                   ${rep === 'REGULAR' ? 'bg-yellow-100 text-yellow-800' : ''}
                   ${rep === 'DUDOSA' ? 'bg-orange-100 text-orange-800' : ''}
                   ${rep === 'MALA' ? 'bg-red-100 text-red-800' : ''}
                   ${rep === 'RESTRINGIDA' ? 'bg-gray-800 text-white' : ''}
                   ${rep === 'OBSERVADA' ? 'bg-purple-100 text-purple-800' : ''}
                 `}>
-                  {rep}
+                  {displayReputacion(rep)}
                 </span>
               </label>
             ))}
@@ -119,7 +120,7 @@ export const ReporteVendedoras = ({ isOpen, onClose }: Props) => {
                         <td className="border p-2">{v.cedula}</td>
                         <td className="border p-2">{v.telefono || '-'}</td>
                         <td className="border p-2">{v.direccion || '-'}</td>
-                        <td className="border p-2 font-semibold">{v.reputacion}</td>
+                        <td className="border p-2 font-semibold">{displayReputacion(v.reputacion)}</td>
                         <td className="border p-2">{(v as any).region || '-'}</td>
                       </tr>
                     ))

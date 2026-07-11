@@ -1,6 +1,7 @@
 ﻿import { ReactNode, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import SidebarExportModal from './SidebarExportModal';
 
 interface LayoutProps {
   children: ReactNode;
@@ -77,14 +78,27 @@ const Layout = ({ children, title, menuItems, sidebarBg, sidebarBorder, sidebarH
               <ul className="space-y-1.5">
                 {menuItems.map((item) => (
                   <li key={item.to}>
-                    <Link
-                      to={item.to}
-                      onClick={() => setMobileOpen(false)}
-                      className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 hover:${sidebarHover} text-gray-300 hover:text-white`}
-                    >
-                      <span className="text-xl">{item.icon}</span>
-                      <span className="font-medium text-sm">{item.label}</span>
-                    </Link>
+                      {item.to.startsWith('action:') ? (
+                        <button
+                          onClick={() => {
+                            setMobileOpen(false);
+                            window.dispatchEvent(new CustomEvent('app:sidebar-action', { detail: item.to }));
+                          }}
+                          className={`w-full text-left flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 hover:${sidebarHover} text-gray-300 hover:text-white`}
+                        >
+                          <span className="text-xl">{item.icon}</span>
+                          <span className="font-medium text-sm">{item.label}</span>
+                        </button>
+                      ) : (
+                        <Link
+                          to={item.to}
+                          onClick={() => setMobileOpen(false)}
+                          className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 hover:${sidebarHover} text-gray-300 hover:text-white`}
+                        >
+                          <span className="text-xl">{item.icon}</span>
+                          <span className="font-medium text-sm">{item.label}</span>
+                        </Link>
+                      )}
                   </li>
                 ))}
               </ul>
@@ -100,6 +114,9 @@ const Layout = ({ children, title, menuItems, sidebarBg, sidebarBorder, sidebarH
             </div>
           </div>
         </aside>
+
+        {/* Modal global para exportar vendedoras desde el sidebar */}
+        <SidebarExportModal />
 
         {mobileOpen && (
           <button

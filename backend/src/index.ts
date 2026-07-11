@@ -37,6 +37,8 @@ import vendedoraRoutes from './routes/vendedoraRoutes'
 import zonaRoutes from './routes/zonaRoutes'
 import mensajeRoutes from './routes/mensajeRoutes'
 import seguridadRoutes from './routes/seguridadRoutes'
+import campaniaRoutes from './routes/campaniaRoutes'
+import coleccionRoutes from './routes/coleccionRoutes'
 import { listarRegionesController } from './controllers/usuarioController'
 
 const app = express()
@@ -61,9 +63,11 @@ app.use(cors({
 }))
 
 // Rate Limiting - Protección contra ataques de fuerza bruta
+const isProduction = process.env.NODE_ENV === 'production';
+
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 100, // máximo 100 peticiones por IP
+  max: isProduction ? 100 : 1000, // más permisivo en desarrollo para pruebas locales
   message: 'Demasiadas peticiones, intente nuevamente en 15 minutos',
   standardHeaders: true,
   legacyHeaders: false,
@@ -71,7 +75,7 @@ const globalLimiter = rateLimit({
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 20, // máximo 5 intentos de login por IP
+  max: isProduction ? 100 : 1000, // más permisivo en desarrollo para pruebas locales
   message: 'Demasiados intentos de inicio de sesión, intente nuevamente en 15 minutos',
   skipSuccessfulRequests: true, // No contar intentos exitosos
 })
@@ -91,6 +95,8 @@ app.use(['/api/vendedora', '/vendedora'], vendedoraRoutes)
 app.use(['/api/zonas', '/zonas'], zonaRoutes)
 app.use(['/api/mensajes', '/mensajes'], mensajeRoutes)
 app.use(['/api/seguridad', '/seguridad'], seguridadRoutes)
+app.use(['/api/campania', '/campania'], campaniaRoutes)
+app.use(['/api/coleccion', '/coleccion'], coleccionRoutes)
 
 // ==================== RUTA SEGURA PARA REGIONES ====================
 // Requiere autenticación (Bearer token)

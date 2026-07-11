@@ -47,4 +47,16 @@ export const regionService = {
     api.get<Region[]>('/regiones'),
 };
 
+export const usuarioService = {
+  pausar: (id: number, activo: boolean) =>
+    api.put(`/auth/usuarios/${id}/activo`, { activo }),
+};
+
+export const campaniaService = {
+  listar: (params?: Record<string, any>) => api.get('/campania', { params }),
+  crear: (data: Record<string, any>) => api.post('/campania', data),
+  actualizar: (id: number, data: Record<string, any>) => api.put(`/campania/${id}`, data),
+  eliminar: (id: number) => api.delete(`/campania/${id}`),
+};
+
 export default api;

@@ -269,6 +269,16 @@ export async function editarUsuarioController(req: Request, res: Response) {
       return res.status(403).json({ error: 'No tienes permiso para editar usuarios' });
     }
 
+    if (usuarioAuth.rol === 'GERENTE_REGIONAL') {
+      const checkPropietario = await pool.query(
+        'SELECT id FROM "Usuario" WHERE id = $1 AND "creadoPorId" = $2',
+        [id, usuarioAuth.id]
+      );
+      if (checkPropietario.rows.length === 0) {
+        return res.status(403).json({ error: 'No puedes editar este usuario' });
+      }
+    }
+
     const existe = await pool.query(
       'SELECT id FROM "Usuario" WHERE LOWER(email) = LOWER($1) AND id != $2',
       [email, id]
@@ -324,6 +334,54 @@ export async function editarUsuarioController(req: Request, res: Response) {
     res.json({ mensaje: 'Usuario actualizado correctamente', usuario: result.rows[0] });
   } catch (error: any) {
     console.error('Error al editar usuario:', error);
+    res.status(500).json({ error: error.message });
+  }
+}
+
+// =====================================================
+// PAUSAR / REACTIVAR USUARIO
+// =====================================================
+export async function pausarUsuarioController(req: Request, res: Response) {
+  try {
+    const id = parseInt(req.params.id as string);
+    const { activo } = req.body;
+    const usuarioAuth = (req as any).usuario;
+
+    if (activo === undefined) {
+      return res.status(400).json({ error: 'El estado activo es requerido' });
+    }
+
+    const usuarioResult = await pool.query(
+      'SELECT id, rol, "creadoPorId" FROM "Usuario" WHERE id = $1',
+      [id]
+    );
+
+    if (usuarioResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+
+    const usuarioTarget = usuarioResult.rows[0];
+
+    if (usuarioTarget.rol !== 'GERENTE_ZONA') {
+      return res.status(403).json({ error: 'Solo se pueden pausar o reactivar gerentes de zona' });
+    }
+
+    if (usuarioAuth.rol === 'GERENTE_REGIONAL') {
+      if (usuarioTarget.creadoPorId !== usuarioAuth.id) {
+        return res.status(403).json({ error: 'No puedes modificar este usuario' });
+      }
+    } else if (usuarioAuth.rol !== 'ADMIN') {
+      return res.status(403).json({ error: 'No tienes permiso para modificar este usuario' });
+    }
+
+    const result = await pool.query(
+      'UPDATE "Usuario" SET activo = $1 WHERE id = $2 RETURNING id, email, nombre, rol, activo',
+      [Boolean(activo), id]
+    );
+
+    res.json({ mensaje: 'Usuario actualizado correctamente', usuario: result.rows[0] });
+  } catch (error: any) {
+    console.error('Error al pausar o reactivar usuario:', error);
     res.status(500).json({ error: error.message });
   }
 }

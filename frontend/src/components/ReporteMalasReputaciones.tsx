@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { vendedoraService } from '../services/api';
 import { Vendedora } from '../types';
+import { displayReputacion } from '../utils/reputacion';
 
 interface Props {
   isOpen: boolean;
@@ -8,7 +9,7 @@ interface Props {
 }
 
 const OPCIONES_REPUTACION = [
-  'BUENA',
+  'ACTIVA',
   'REGULAR',
   'DUDOSA',
   'MALA',
@@ -51,6 +52,27 @@ export const ReporteMalasReputaciones = ({ isOpen, onClose }: Props) => {
     window.print();
   };
 
+  const exportCSV = () => {
+    if (!vendedoras || vendedoras.length === 0) return;
+    const headers = ['Nombre', 'Cédula', 'Teléfono', 'Dirección', 'Reputación', 'Región'];
+    const rows = vendedoras.map(v => [v.nombre, v.cedula, v.telefono || '', v.direccion || '', v.reputacion, (v as any).region || '']);
+    const csvContent = [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `reporte_vendedoras_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const total = vendedoras.length;
+  const countsByRep = vendedoras.reduce<Record<string, number>>((acc, v) => {
+    const r = v.reputacion || 'UNKNOWN';
+    acc[r] = (acc[r] || 0) + 1;
+    return acc;
+  }, {});
+
   if (!isOpen) return null;
 
   return (
@@ -60,6 +82,12 @@ export const ReporteMalasReputaciones = ({ isOpen, onClose }: Props) => {
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-bold">📋 Reporte de Vendedoras por Reputación</h2>
             <div className="space-x-2">
+              <button
+                onClick={exportCSV}
+                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+              >
+                ⬇️ Exportar CSV
+              </button>
               <button
                 onClick={handleImprimir}
                 className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
@@ -74,6 +102,12 @@ export const ReporteMalasReputaciones = ({ isOpen, onClose }: Props) => {
               </button>
             </div>
           </div>
+          <div className="mb-4 flex items-center gap-4">
+            <div className="text-sm font-medium">Total: <span className="font-semibold">{total}</span></div>
+            <div className="flex gap-2 text-sm">{Object.keys(countsByRep).map(k => (
+              <div key={k} className="px-2 py-1 bg-gray-100 rounded">{k}: {countsByRep[k]}</div>
+            ))}</div>
+          </div>
           <div className="flex flex-wrap gap-3 items-center border-t pt-3">
             <span className="font-semibold">Filtrar por reputación:</span>
             {OPCIONES_REPUTACION.map(rep => (
@@ -85,14 +119,14 @@ export const ReporteMalasReputaciones = ({ isOpen, onClose }: Props) => {
                   className="form-checkbox"
                 />
                 <span className={`px-2 py-0.5 rounded-full text-xs font-medium
-                  ${rep === 'BUENA' ? 'bg-green-100 text-green-800' : ''}
+                  ${rep === 'ACTIVA' ? 'bg-green-100 text-green-800' : ''}
                   ${rep === 'REGULAR' ? 'bg-yellow-100 text-yellow-800' : ''}
                   ${rep === 'DUDOSA' ? 'bg-orange-100 text-orange-800' : ''}
                   ${rep === 'MALA' ? 'bg-red-100 text-red-800' : ''}
                   ${rep === 'RESTRINGIDA' ? 'bg-gray-800 text-white' : ''}
                   ${rep === 'OBSERVADA' ? 'bg-purple-100 text-purple-800' : ''}
                 `}>
-                  {rep}
+                  {displayReputacion(rep)}
                 </span>
               </label>
             ))}
@@ -129,7 +163,7 @@ export const ReporteMalasReputaciones = ({ isOpen, onClose }: Props) => {
                         <td className="border p-2">{v.cedula}</td>
                         <td className="border p-2">{v.telefono || '-'}</td>
                         <td className="border p-2">{v.direccion || '-'}</td>
-                        <td className="border p-2 font-semibold">{v.reputacion}</td>
+                        <td className="border p-2 font-semibold">{displayReputacion(v.reputacion)}</td>
                         <td className="border p-2">{(v as any).region || '-'}</td>
                       </tr>
                     ))

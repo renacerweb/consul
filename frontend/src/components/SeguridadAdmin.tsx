@@ -5,6 +5,7 @@ import LoadingSpinner from './LoadingSpinner';
 import ErrorMessage from './ErrorMessage';
 import { useErrorHandler } from '../hooks/useErrorHandler';
 import { MESSAGES } from '../constants/common';
+import { isGerenteZonaCampanasEnabled, setGerenteZonaCampanasEnabled, isGerenteColeccionesEnabled, setGerenteColeccionesEnabled } from '../utils/featureFlags';
 
 interface IPBloqueada {
   id: number;
@@ -29,7 +30,9 @@ function SeguridadAdmin() {
   const [ipsBloqueadas, setIpsBloqueadas] = useState<IPBloqueada[]>([]);
   const [auditoria, setAuditoria] = useState<Auditoria[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<'bloqueadas' | 'auditoria'>('bloqueadas');
+  const [tab, setTab] = useState<'bloqueadas' | 'auditoria' | 'funciones'>('bloqueadas');
+  const [campanasGerenteZonaEnabled, setCampanasGerenteZonaEnabled] = useState(isGerenteZonaCampanasEnabled());
+  const [coleccionesGerenteEnabled, setColeccionesGerenteEnabled] = useState(isGerenteColeccionesEnabled());
 
   const fetchIpsBloqueadas = useCallback(async () => {
     await wrapAsync(async () => {
@@ -58,6 +61,18 @@ function SeguridadAdmin() {
       fetchIpsBloqueadas();
     }, MESSAGES.ERROR_SAVE);
   }, [wrapAsync, fetchIpsBloqueadas]);
+
+  const handleToggleCampanasGerenteZona = useCallback((enabled: boolean) => {
+    setGerenteZonaCampanasEnabled(enabled);
+    setCampanasGerenteZonaEnabled(enabled);
+    window.location.reload();
+  }, []);
+
+  const handleToggleColeccionesGerente = useCallback((enabled: boolean) => {
+    setGerenteColeccionesEnabled(enabled);
+    setColeccionesGerenteEnabled(enabled);
+    window.location.reload();
+  }, []);
 
   const ipsColumns = useMemo(() => [
     { key: 'ip', label: 'Dirección IP', className: 'font-mono' },
@@ -148,6 +163,16 @@ function SeguridadAdmin() {
           >
             Auditoría ({auditoria.length})
           </button>
+          <button
+            onClick={() => setTab('funciones')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              tab === 'funciones'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Funciones
+          </button>
         </nav>
       </div>
 
@@ -177,6 +202,57 @@ function SeguridadAdmin() {
             columns={auditoriaColumns}
             emptyMessage="No hay registros de auditoría"
           />
+        </div>
+      )}
+
+      {tab === 'funciones' && (
+        <div>
+          <div className="mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">Funcionalidades por rol</h2>
+            <p className="text-gray-600 text-sm">Activa o desactiva el módulo de campañas para los gerentes de zona.</p>
+          </div>
+
+          <div className="space-y-4">
+            <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h3 className="font-semibold text-gray-900">Módulo de campañas para gerentes</h3>
+                  <p className="text-sm text-gray-600">Cuando está activado, el menú y la ruta de campañas quedan disponibles para los rol(es) correspondientes.</p>
+                </div>
+                <label className="inline-flex cursor-pointer items-center">
+                  <input
+                    type="checkbox"
+                    checked={campanasGerenteZonaEnabled}
+                    onChange={(e) => handleToggleCampanasGerenteZona(e.target.checked)}
+                    className="peer sr-only"
+                  />
+                  <div className="relative h-6 w-11 rounded-full bg-gray-200 transition peer-checked:bg-green-600">
+                    <div className="absolute left-1 top-1 h-4 w-4 rounded-full bg-white transition peer-checked:translate-x-5"></div>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h3 className="font-semibold text-gray-900">Módulo de colecciones para gerente regional</h3>
+                  <p className="text-sm text-gray-600">Cuando está activado, el menú y la ruta de colecciones quedan disponibles para el Gerente Regional.</p>
+                </div>
+                <label className="inline-flex cursor-pointer items-center">
+                  <input
+                    type="checkbox"
+                    checked={coleccionesGerenteEnabled}
+                    onChange={(e) => handleToggleColeccionesGerente(e.target.checked)}
+                    className="peer sr-only"
+                  />
+                  <div className="relative h-6 w-11 rounded-full bg-gray-200 transition peer-checked:bg-green-600">
+                    <div className="absolute left-1 top-1 h-4 w-4 rounded-full bg-white transition peer-checked:translate-x-5"></div>
+                  </div>
+                </label>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
