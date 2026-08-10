@@ -144,6 +144,18 @@ function GerenteRegionalMensajes() {
     }
   }, [fetchMensajes]);
 
+  const eliminarMensaje = useCallback(async (id: number) => {
+    if (!window.confirm('¿Eliminar este mensaje? Esta acción no se puede deshacer.')) return;
+    try {
+      await api.delete(`/mensajes/${id}`);
+      await fetchMensajes();
+      showToast('Mensaje eliminado', 'success');
+    } catch (err) {
+      console.error('Error al eliminar mensaje', err);
+      showToast('No se pudo eliminar el mensaje', 'error');
+    }
+  }, [fetchMensajes, showToast]);
+
   if (loading) return <LayoutGerenteRegional title="Mensajes"><LoadingSpinner message="Cargando..." /></LayoutGerenteRegional>;
 
   return (
@@ -166,12 +178,13 @@ function GerenteRegionalMensajes() {
           <tbody className="divide-y divide-gray-200">
             {mensajes.map((m) => (
               <tr key={m.id} className={!m.leido ? 'bg-blue-50' : ''}>
-                <td className="px-6 py-4">
+                <td className="px-6 py-4 space-y-2">
                   {!m.leido ? (
                     <button onClick={() => marcarLeido(m.id)} className="text-blue-600 hover:text-blue-800 text-sm">📖 Marcar leído</button>
                   ) : (
                     <span className="text-gray-400">✅ Leído</span>
                   )}
+                  <button onClick={() => eliminarMensaje(m.id)} className="text-red-600 hover:text-red-800 text-sm">🗑️ Eliminar</button>
                 </td>
                 <td className="px-6 py-4">{m.remitenteNombre}</td>
                 <td className="px-6 py-4 font-medium">{m.titulo}</td>

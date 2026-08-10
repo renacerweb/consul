@@ -1,4 +1,4 @@
-﻿import { HashRouter, Routes, Route } from 'react-router-dom';
+﻿import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -10,21 +10,24 @@ import { isGerenteZonaCampanasEnabled, isGerenteColeccionesEnabled } from './uti
 // Lazy loading de páginas
 const Home = lazy(() => import('./pages/Home'));
 const Login = lazy(() => import('./pages/Login'));
+const Contacto = lazy(() => import('./pages/Contacto'));
+const RegistroVendedora = lazy(() => import('./pages/RegistroVendedora'));
 
 // Admin
 const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'));
 const AdminUsuarios = lazy(() => import('./pages/admin/Usuarios'));
 const AdminVendedoras = lazy(() => import('./pages/admin/Vendedoras'));
-const AdminVendedorasActivas = lazy(() => import('./pages/admin/VendedorasActivas'));
+const AdminVendedorasBuenas = lazy(() => import('./pages/admin/VendedorasActivas'));
 const AdminVendedorasMalas = lazy(() => import('./pages/admin/VendedorasMalas'));
 const AdminMensajes = lazy(() => import('./pages/admin/Mensajes'));
+const AdminCarrusel = lazy(() => import('./pages/admin/Carrusel'));
 const AdminSeguridad = lazy(() => import('./pages/admin/Seguridad'));
 
 // Gerente Regional
 const GerenteRegionalDashboard = lazy(() => import('./pages/gerente-regional/Dashboard'));
 const GerenteRegionalUsuarios = lazy(() => import('./pages/gerente-regional/Usuarios'));
 const GerenteRegionalVendedoras = lazy(() => import('./pages/gerente-regional/Vendedoras'));
-const GerenteRegionalVendedorasActivas = lazy(() => import('./pages/gerente-regional/VendedorasActivas'));
+const GerenteRegionalVendedorasBuenas = lazy(() => import('./pages/gerente-regional/VendedorasActivas'));
 const GerenteRegionalVendedorasMalas = lazy(() => import('./pages/gerente-regional/VendedorasMalas'));
 const GerenteRegionalMensajes = lazy(() => import('./pages/gerente-regional/Mensajes'));
 const GerenteRegionalCampanas = lazy(() => import('./pages/gerente-regional/Campanas'));
@@ -36,7 +39,7 @@ const GerenteRegionalZonas = lazy(() => import('./pages/gerente-regional/Zonas')
 const GerenteDashboard = lazy(() => import('./pages/gerente/Dashboard'));
 const GerenteMensajes = lazy(() => import('./pages/gerente/Mensajes'));
 const GerenteVendedoras = lazy(() => import('./pages/gerente/Vendedoras'));
-const GerenteVendedorasActivas = lazy(() => import('./pages/gerente/VendedorasActivas'));
+const GerenteVendedorasBuenas = lazy(() => import('./pages/gerente/VendedorasActivas'));
 const GerenteVendedorasMalas = lazy(() => import('./pages/gerente/VendedorasMalas'));
 const GerenteCampanas = lazy(() => import('./pages/gerente/Campanas'));
 
@@ -57,6 +60,8 @@ function App() {
               {/* Rutas públicas */}
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/contacto" element={<Contacto />} />
+              <Route path="/registro-vendedora" element={<RegistroVendedora />} />
               
               {/* Rutas ADMIN */}
               <Route path="/admin" element={
@@ -74,9 +79,9 @@ function App() {
                   <AdminVendedoras />
                 </ProtectedRoute>
               } />
-              <Route path="/admin/vendedoras-activas" element={
+              <Route path="/admin/vendedoras-buenas" element={
                 <ProtectedRoute allowedRoles={['ADMIN']}>
-                  <AdminVendedorasActivas />
+                  <AdminVendedorasBuenas />
                 </ProtectedRoute>
               } />
               <Route path="/admin/vendedoras-malas" element={
@@ -87,6 +92,11 @@ function App() {
               <Route path="/admin/mensajes" element={
                 <ProtectedRoute allowedRoles={['ADMIN']}>
                   <AdminMensajes />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/carrusel" element={
+                <ProtectedRoute allowedRoles={["ADMIN"]}>
+                  <AdminCarrusel />
                 </ProtectedRoute>
               } />
               <Route path="/admin/seguridad" element={
@@ -111,9 +121,9 @@ function App() {
                   <GerenteRegionalVendedoras />
                 </ProtectedRoute>
               } />
-              <Route path="/gerente-regional/vendedoras-activas" element={
+              <Route path="/gerente-regional/vendedoras-buenas" element={
                 <ProtectedRoute allowedRoles={['GERENTE_REGIONAL']}>
-                  <GerenteRegionalVendedorasActivas />
+                  <GerenteRegionalVendedorasBuenas />
                 </ProtectedRoute>
               } />
               <Route path="/gerente-regional/vendedoras-malas" element={
@@ -136,27 +146,21 @@ function App() {
                   <GerenteRegionalMensajes />
                 </ProtectedRoute>
               } />
-              {isGerenteZonaCampanasEnabled() && (
-                <>
-                  <Route path="/gerente-regional/campanas" element={
-                    <ProtectedRoute allowedRoles={['GERENTE_REGIONAL']}>
-                      <GerenteRegionalCampanas />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/gerente-regional/campanas-historial" element={
-                    <ProtectedRoute allowedRoles={['GERENTE_REGIONAL']}>
-                      <GerenteRegionalCampanasHistorial />
-                    </ProtectedRoute>
-                  } />
-                </>
-              )}
-              {isGerenteColeccionesEnabled() && (
-                <Route path="/gerente-regional/colecciones" element={
-                  <ProtectedRoute allowedRoles={['GERENTE_REGIONAL']}>
-                    <GerenteRegionalColecciones />
-                  </ProtectedRoute>
-                } />
-              )}
+              <Route path="/gerente-regional/campanas" element={
+                <ProtectedRoute allowedRoles={['GERENTE_REGIONAL']}>
+                  {isGerenteZonaCampanasEnabled() ? <GerenteRegionalCampanas /> : <Navigate to="/gerente-regional" replace />}
+                </ProtectedRoute>
+              } />
+              <Route path="/gerente-regional/campanas-historial" element={
+                <ProtectedRoute allowedRoles={['GERENTE_REGIONAL']}>
+                  {isGerenteZonaCampanasEnabled() ? <GerenteRegionalCampanasHistorial /> : <Navigate to="/gerente-regional" replace />}
+                </ProtectedRoute>
+              } />
+              <Route path="/gerente-regional/colecciones" element={
+                <ProtectedRoute allowedRoles={['GERENTE_REGIONAL']}>
+                  {isGerenteColeccionesEnabled() ? <GerenteRegionalColecciones /> : <Navigate to="/gerente-regional" replace />}
+                </ProtectedRoute>
+              } />
               
               {/* Rutas GERENTE_ZONA */}
               <Route path="/gerente" element={
@@ -169,9 +173,9 @@ function App() {
                   <GerenteVendedoras />
                 </ProtectedRoute>
               } />
-              <Route path="/gerente/vendedoras-activas" element={
+              <Route path="/gerente/vendedoras-buenas" element={
                 <ProtectedRoute allowedRoles={['GERENTE_ZONA']}>
-                  <GerenteVendedorasActivas />
+                  <GerenteVendedorasBuenas />
                 </ProtectedRoute>
               } />
               <Route path="/gerente/vendedoras-malas" element={
@@ -184,13 +188,11 @@ function App() {
                   <GerenteMensajes />
                 </ProtectedRoute>
               } />
-              {isGerenteZonaCampanasEnabled() && (
-                <Route path="/gerente/campanas" element={
-                  <ProtectedRoute allowedRoles={['GERENTE_ZONA']}>
-                    <GerenteCampanas />
-                  </ProtectedRoute>
-                } />
-              )}
+              <Route path="/gerente/campanas" element={
+                <ProtectedRoute allowedRoles={['GERENTE_ZONA']}>
+                  {isGerenteZonaCampanasEnabled() ? <GerenteCampanas /> : <Navigate to="/gerente" replace />}
+                </ProtectedRoute>
+              } />
               
               {/* Rutas AUXILIAR */}
               <Route path="/auxiliar" element={

@@ -71,45 +71,47 @@ function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-900 to-purple-900">
+    <div className="min-h-screen bg-slate-100">
       {/* Background decorative elements */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-indigo-500 rounded-full opacity-20 blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-500 rounded-full opacity-20 blur-3xl" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-indigo-400 rounded-full opacity-10 blur-3xl" />
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-indigo-300 rounded-full opacity-20 blur-3xl" />
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-violet-300 rounded-full opacity-20 blur-3xl" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-indigo-200 rounded-full opacity-10 blur-3xl" />
       </div>
 
       <div className="relative min-h-screen flex items-center justify-center p-4 sm:p-6 lg:p-8">
         <div className="w-full max-w-md">
           {/* Logo and Brand */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl shadow-2xl mb-4">
-              <span className="text-white font-bold text-3xl">R</span>
+            <div className="mx-auto mb-4 w-24 h-24 sm:w-28 sm:h-28 rounded-3xl overflow-hidden shadow-2xl bg-white">
+              <img src="/logo.png" alt="Renacer logo" className="w-full h-full object-contain" />
             </div>
-            <h1 className="text-3xl font-bold text-white mb-2">Renacer Check In</h1>
-            <p className="text-indigo-200 text-sm">Sistema de verificación de vendedoras</p>
+            <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-2">Renacer Check In</h1>
+            <p className="text-slate-600 text-sm sm:text-base max-w-md mx-auto">
+              Sistema de verificación de vendedoras
+            </p>
           </div>
 
           {/* Login Card */}
-          <div className="backdrop-blur-xl bg-white/10 rounded-2xl shadow-2xl border border-white/20 p-6 sm:p-8">
+          <div className="relative overflow-hidden rounded-3xl bg-white shadow-2xl border border-slate-200 p-6 sm:p-8">
             <div className="flex items-center gap-2 mb-6">
-              <LogIn className="w-5 h-5 text-indigo-300" />
-              <h2 className="text-xl font-semibold text-white">Iniciar Sesión</h2>
+              <LogIn className="w-5 h-5 text-indigo-500" />
+              <h2 className="text-xl font-semibold text-slate-900">Iniciar Sesión</h2>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
               {/* Email Field */}
               <div>
-                <label className="block text-indigo-200 text-sm font-medium mb-2">
+                <label className="block text-slate-700 text-sm font-medium mb-2">
                   Correo electrónico
                 </label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-300 w-5 h-5" />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 w-5 h-5" />
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder:text-indigo-300/50 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent transition-all"
+                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent transition-all"
                     placeholder="admin@renacer.com"
                     required
                     disabled={loading}
@@ -119,16 +121,16 @@ function Login() {
 
               {/* Password Field */}
               <div>
-                <label className="block text-indigo-200 text-sm font-medium mb-2">
+                <label className="block text-slate-700 text-sm font-medium mb-2">
                   Contraseña
                 </label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-300 w-5 h-5" />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 w-5 h-5" />
                   <input
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-10 pr-12 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder:text-indigo-300/50 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent transition-all"
+                    className="w-full pl-10 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent transition-all"
                     placeholder="••••••••"
                     required
                     disabled={loading}
@@ -151,12 +153,12 @@ function Login() {
                     type="checkbox"
                     checked={rememberMe}
                     onChange={(e) => setRememberMe(e.target.checked)}
-                    className="w-4 h-4 rounded border-white/30 bg-white/10 text-indigo-500 focus:ring-indigo-400 focus:ring-offset-0 cursor-pointer"
+                    className="w-4 h-4 rounded border-slate-300 bg-white text-indigo-500 focus:ring-indigo-400 focus:ring-offset-0 cursor-pointer"
                     disabled={loading}
                   />
-                  <span className="text-indigo-200 text-sm group-hover:text-white transition">Recordarme</span>
+                  <span className="text-slate-600 text-sm group-hover:text-slate-900 transition">Recordarme</span>
                 </label>
-                <Link to="/forgot-password" className="text-indigo-300 text-sm hover:text-indigo-200 transition">
+                <Link to="/forgot-password" className="text-indigo-600 text-sm hover:text-indigo-500 transition">
                   ¿Olvidaste tu contraseña?
                 </Link>
               </div>
@@ -181,18 +183,21 @@ function Login() {
               </button>
 
               {/* Security notice */}
-              <div className="mt-6 pt-4 border-t border-white/10 text-center">
-                <p className="text-indigo-300 text-xs flex items-center justify-center gap-1">
-                  <Shield className="w-3 h-3" />
+              <div className="mt-6 pt-4 border-t border-slate-200 text-center">
+                <p className="text-slate-500 text-xs flex items-center justify-center gap-1">
+                  <Shield className="w-3 h-3 text-indigo-400" />
                   Acceso restringido solo para personal autorizado
                 </p>
               </div>
             </form>
           </div>
 
-          {/* Back to home link */}
+          {/* Back to home button */}
           <div className="text-center mt-6">
-            <Link to="/" className="text-indigo-300 text-sm hover:text-indigo-200 transition inline-flex items-center gap-1">
+            <Link
+              to="/"
+              className="inline-flex items-center justify-center gap-2 rounded-full border border-indigo-200 bg-white px-5 py-3 text-sm font-semibold text-indigo-600 shadow-sm transition hover:bg-indigo-50 hover:text-indigo-700"
+            >
               ← Volver al inicio
             </Link>
           </div>

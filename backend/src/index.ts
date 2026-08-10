@@ -39,6 +39,8 @@ import mensajeRoutes from './routes/mensajeRoutes'
 import seguridadRoutes from './routes/seguridadRoutes'
 import campaniaRoutes from './routes/campaniaRoutes'
 import coleccionRoutes from './routes/coleccionRoutes'
+import carruselRoutes from './routes/carruselRoutes'
+import contactoRoutes from './routes/contactoRoutes'
 import { listarRegionesController } from './controllers/usuarioController'
 
 const app = express()
@@ -53,7 +55,7 @@ app.use(helmet())
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173'
 const allowedOrigins = process.env.NODE_ENV === 'production'
   ? [FRONTEND_URL]
-  : ['http://localhost:5173', 'http://localhost:3001', FRONTEND_URL]
+  : [/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/]
 
 app.use(cors({
   origin: allowedOrigins,
@@ -63,11 +65,9 @@ app.use(cors({
 }))
 
 // Rate Limiting - Protección contra ataques de fuerza bruta
-const isProduction = process.env.NODE_ENV === 'production';
-
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
-  max: isProduction ? 100 : 1000, // más permisivo en desarrollo para pruebas locales
+  max: 1000, // máximo 1000 peticiones por IP en desarrollo
   message: 'Demasiadas peticiones, intente nuevamente en 15 minutos',
   standardHeaders: true,
   legacyHeaders: false,
@@ -75,7 +75,7 @@ const globalLimiter = rateLimit({
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
-  max: isProduction ? 100 : 1000, // más permisivo en desarrollo para pruebas locales
+  max: 1000, // aumentado temporalmente para permitir pruebas locales
   message: 'Demasiados intentos de inicio de sesión, intente nuevamente en 15 minutos',
   skipSuccessfulRequests: true, // No contar intentos exitosos
 })
@@ -87,6 +87,10 @@ app.use(globalLimiter)
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
+// ==================== ARCHIVOS ESTÁTICOS ====================
+const UPLOADS_DIR = path.resolve(process.cwd(), 'public', 'uploads')
+app.use('/uploads', express.static(UPLOADS_DIR))
+
 // ==================== RUTAS DE LA API ====================
 // Rate limiting más estricto para login
 app.use(['/api/auth/login', '/auth/login'], authLimiter)
@@ -94,9 +98,11 @@ app.use(['/api/auth', '/auth'], authRoutes)
 app.use(['/api/vendedora', '/vendedora'], vendedoraRoutes)
 app.use(['/api/zonas', '/zonas'], zonaRoutes)
 app.use(['/api/mensajes', '/mensajes'], mensajeRoutes)
+app.use(['/api/contacto', '/contacto'], contactoRoutes)
 app.use(['/api/seguridad', '/seguridad'], seguridadRoutes)
 app.use(['/api/campania', '/campania'], campaniaRoutes)
 app.use(['/api/coleccion', '/coleccion'], coleccionRoutes)
+app.use(['/api/carrusel', '/carrusel'], carruselRoutes)
 
 // ==================== RUTA SEGURA PARA REGIONES ====================
 // Requiere autenticación (Bearer token)

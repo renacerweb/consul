@@ -146,6 +146,46 @@ export async function marcarComoLeidoController(req: Request, res: Response) {
 }
 
 /**
+ * ELIMINAR MENSAJE
+ * 
+ * Endpoint: DELETE /api/mensajes/:id
+ * 
+ * Acceso: ADMIN/AUXILIAR pueden eliminar cualquier mensaje.
+ * Gerentes solo pueden eliminar mensajes que ven en su bandeja.
+ */
+export async function eliminarMensajeController(req: Request, res: Response) {
+  try {
+    const { id } = req.params;
+    const usuario = (req as any).usuario;
+
+    let result;
+
+    if (usuario.rol === 'ADMIN' || usuario.rol === 'AUXILIAR') {
+      result = await pool.query(
+        `DELETE FROM "Mensaje" WHERE id = $1 RETURNING *`,
+        [id]
+      );
+    } else {
+      result = await pool.query(
+        `DELETE FROM "Mensaje"
+         WHERE id = $1 AND ("destinatarioId" = $2 OR "paraTodosGerentes" = true)
+         RETURNING *`,
+        [id, usuario.id]
+      );
+    }
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Mensaje no encontrado o sin permiso para eliminarlo' });
+    }
+
+    res.json({ mensaje: 'Mensaje eliminado', data: result.rows[0] });
+  } catch (error: any) {
+    console.error('Error al eliminar mensaje:', error);
+    res.status(500).json({ error: error.message });
+  }
+}
+
+/**
  * LISTAR GERENTES (para selector de destinatarios)
  * 
  * Endpoint: GET /api/mensajes/gerentes

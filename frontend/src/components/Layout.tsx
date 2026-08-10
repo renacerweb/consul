@@ -1,12 +1,21 @@
 ﻿import { ReactNode, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { LogOut } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import SidebarExportModal from './SidebarExportModal';
+
+interface MenuItemProps {
+  to: string;
+  label: string;
+  icon: ReactNode;
+  iconColor?: string;
+  section?: string;
+}
 
 interface LayoutProps {
   children: ReactNode;
   title: string;
-  menuItems: { to: string; label: string; icon: string }[];
+  menuItems: MenuItemProps[];
   sidebarBg: string;
   sidebarBorder: string;
   sidebarHover: string;
@@ -64,20 +73,31 @@ const Layout = ({ children, title, menuItems, sidebarBg, sidebarBorder, sidebarH
         >
           <div className={`h-full flex flex-col text-white ${sidebarBg}`}>
             <div className={`p-5 border-b ${sidebarBorder}`}>
-              <h1 className={`text-xl font-bold ${panelTitle === 'Sistema interno' ? 'text-white' : panelTitle}`}>Sistema Interno</h1>
-              <div className="mt-3 flex items-center gap-2 text-xs text-gray-200">
+              <h1 className="text-xl font-bold text-white">Sistema Interno</h1>
+              <div className="mt-3 flex flex-col gap-1 text-xs text-slate-300">
                 <span>Rol: <span className="text-white font-medium">{roleLabel}</span></span>
+                {usuario && (
+                  <span className="truncate">{usuario.email}</span>
+                )}
               </div>
-              {usuario && (
-                <div className="mt-2 text-xs text-gray-300 truncate">
-                  {usuario.email}
-                </div>
-              )}
+            </div>
+            <div className="p-4 border-b border-white/10">
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center gap-2 px-3 py-2 text-red-300 hover:bg-red-500/10 rounded-xl transition-colors"
+              >
+                <LogOut className="w-4 h-4" />
+                <span className="text-sm">Cerrar Sesión</span>
+              </button>
             </div>
             <nav className="flex-1 p-4 overflow-y-auto">
               <ul className="space-y-1.5">
-                {menuItems.map((item) => (
-                  <li key={item.to}>
+                {menuItems.map((item, index) => {
+                  const previous = menuItems[index - 1];
+                  const showDivider = item.section && previous?.section !== item.section;
+                  return (
+                    <li key={item.to}>
+                      {showDivider && <div className="border-t border-white/10 my-2" />}
                       {item.to.startsWith('action:') ? (
                         <button
                           onClick={() => {
@@ -86,32 +106,24 @@ const Layout = ({ children, title, menuItems, sidebarBg, sidebarBorder, sidebarH
                           }}
                           className={`w-full text-left flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 hover:${sidebarHover} text-gray-300 hover:text-white`}
                         >
-                          <span className="text-xl">{item.icon}</span>
-                          <span className="font-medium text-sm">{item.label}</span>
+                          <span className={`text-xl ${item.iconColor || 'text-slate-100'}`}>{item.icon}</span>
+                          <span className="font-medium text-sm text-slate-100">{item.label}</span>
                         </button>
                       ) : (
                         <Link
                           to={item.to}
                           onClick={() => setMobileOpen(false)}
-                          className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 hover:${sidebarHover} text-gray-300 hover:text-white`}
+                          className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 hover:${sidebarHover} text-slate-200 hover:text-white`}
                         >
-                          <span className="text-xl">{item.icon}</span>
-                          <span className="font-medium text-sm">{item.label}</span>
+                          <span className={`text-lg ${item.iconColor || 'text-slate-100'}`}>{item.icon}</span>
+                          <span className="font-medium text-sm text-slate-100">{item.label}</span>
                         </Link>
                       )}
-                  </li>
-                ))}
+                    </li>
+                  );
+                })}
               </ul>
             </nav>
-            <div className="p-4 border-t border-white/10">
-              <button
-                onClick={handleLogout}
-                className="w-full flex items-center gap-2 px-3 py-2 text-red-400 hover:bg-red-500/10 rounded-xl transition-colors"
-              >
-                <span>🚪</span>
-                <span className="text-sm">Cerrar Sesión</span>
-              </button>
-            </div>
           </div>
         </aside>
 

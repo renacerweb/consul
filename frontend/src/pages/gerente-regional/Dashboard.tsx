@@ -140,25 +140,25 @@ function GerenteRegionalDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
         <div className="bg-white rounded-lg border border-slate-200 p-4">
           <p className="text-sm text-slate-600">Gerentes de Zona en <span className="font-semibold">Portuguesa</span></p>
-          <p className="text-2xl font-bold mt-2 text-emerald-700">{gerentesPorRegion['Portuguesa'] || 0}</p>
+          <p className="text-2xl font-bold mt-2 text-slate-800">{gerentesPorRegion['Portuguesa'] || 0}</p>
         </div>
         <div className="bg-white rounded-lg border border-slate-200 p-4">
           <p className="text-sm text-slate-600">Gerentes de Zona en <span className="font-semibold">Cojedes</span></p>
-          <p className="text-2xl font-bold mt-2 text-emerald-700">{gerentesPorRegion['Cojedes'] || 0}</p>
+          <p className="text-2xl font-bold mt-2 text-slate-800">{gerentesPorRegion['Cojedes'] || 0}</p>
         </div>
       </div>
 
       {/* Información adicional - Gerentes de Zona bajo supervisión */}
       <div className="bg-white rounded-xl shadow-md p-5 border border-gray-100">
         <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
-          <Users className="w-5 h-5 text-emerald-500" />
+          <Users className="w-5 h-5 text-slate-500" />
           Gerentes de Zona Bajo tu Supervisión
         </h3>
         <p className="text-gray-600">
-          Has creado <span className="font-bold text-emerald-600">{stats.totalGerentesZona}</span> gerentes de zona
+          Has creado <span className="font-bold text-slate-900">{stats.totalGerentesZona}</span> gerentes de zona
         </p>
-        <div className="mt-3 p-3 bg-emerald-50 rounded-lg border border-emerald-100">
-          <p className="text-xs text-emerald-600 flex items-center gap-1">
+        <div className="mt-3 p-3 bg-slate-50 rounded-lg border border-slate-200">
+          <p className="text-xs text-slate-600 flex items-center gap-1">
             <AlertCircle className="w-3 h-3" />
             Puedes gestionar tus gerentes de zona en la sección "Usuarios"
           </p>
