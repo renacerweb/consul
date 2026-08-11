@@ -34,7 +34,8 @@ function Home() {
   const [slideIndex, setSlideIndex] = useState(0);
   const [usuario, setUsuario] = useState<any>(null);
 
-  const [carouselSlides, setCarouselSlides] = useState(defaultCarouselSlides);
+  const [carouselSlides, setCarouselSlides] = useState<any[]>([]);
+  const [carouselLoaded, setCarouselLoaded] = useState(false);
 
   const getApiBaseUrl = () => {
     const rawApiUrl = (import.meta as any).env?.VITE_API_URL;
@@ -61,8 +62,15 @@ function Home() {
     }
   };
 
-  const nextSlide = () => setSlideIndex((prev) => (prev + 1) % carouselSlides.length);
-  const prevSlide = () => setSlideIndex((prev) => (prev - 1 + carouselSlides.length) % carouselSlides.length);
+  const nextSlide = () => {
+    if (!carouselSlides.length) return;
+    setSlideIndex((prev) => (prev + 1) % carouselSlides.length);
+  };
+
+  const prevSlide = () => {
+    if (!carouselSlides.length) return;
+    setSlideIndex((prev) => (prev - 1 + carouselSlides.length) % carouselSlides.length);
+  };
 
   const validarCedula = (value: string): boolean => {
     if (!value) return false;
@@ -129,14 +137,15 @@ function Home() {
     api.get('/carrusel')
       .then((response) => {
         const data = response.data;
-        if (Array.isArray(data)) {
+        if (Array.isArray(data) && data.length) {
           setCarouselSlides(data.map((slide: any) => ({
             ...slide,
             image: normalizeImageUrl(slide.image),
           })));
         }
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setCarouselLoaded(true));
   };
 
   // Listen for updates from admin when carousel changes
@@ -249,11 +258,15 @@ function Home() {
       {/* Hero + Carousel Background */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0">
-          <img
-            src={carouselSlides[slideIndex].image}
-            alt={carouselSlides[slideIndex].alt}
-            className="h-full w-full object-cover"
-          />
+          {carouselLoaded && carouselSlides.length ? (
+            <img
+              src={carouselSlides[slideIndex].image}
+              alt={carouselSlides[slideIndex].alt}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <div className="h-full w-full bg-slate-900" />
+          )}
           <div className="absolute inset-0 bg-slate-950/75 sm:bg-slate-950/60" />
         </div>
         <div className="relative min-h-[680px] sm:min-h-[760px]">
@@ -316,11 +329,13 @@ function Home() {
                 </div>
               )}
             </form>
-            <div className="mt-10 w-full max-w-4xl text-left text-white">
-              <div className="mt-6 flex items-center justify-between gap-3">
+            {carouselLoaded && carouselSlides.length > 0 && (
+              <div className="mt-10 w-full max-w-4xl text-left text-white">
+                <div className="mt-6 flex items-center justify-between gap-3">
                 <button
                   onClick={prevSlide}
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-slate-900 shadow-lg shadow-slate-900/10 hover:bg-white transition"
+                  disabled={!carouselSlides.length}
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-slate-900 shadow-lg shadow-slate-900/10 hover:bg-white transition disabled:opacity-50 disabled:cursor-not-allowed"
                   aria-label="Anterior"
                 >
                   <ArrowLeft className="h-5 w-5" />
@@ -338,14 +353,15 @@ function Home() {
                 </div>
                 <button
                   onClick={nextSlide}
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-slate-900 shadow-lg shadow-slate-900/10 hover:bg-white transition"
+                  disabled={!carouselSlides.length}
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-slate-900 shadow-lg shadow-slate-900/10 hover:bg-white transition disabled:opacity-50 disabled:cursor-not-allowed"
                   aria-label="Siguiente"
                 >
                   <ArrowRight className="h-5 w-5" />
                 </button>
               </div>
             </div>
-          </div>
+          )}
         </div>
       </section>
       
