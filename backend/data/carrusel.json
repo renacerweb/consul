@@ -1,0 +1,20 @@
+[
+  {
+    "title": "Equipo profesional",
+    "subtitle": "Imágenes reales del equipo trabajando junto a vendedoras confiables.",
+    "image": "/uploads/carrusel/1786122067185-fcee65e510d7.png",
+    "alt": "Equipo profesional colaborando"
+  },
+  {
+    "title": "Experiencia y confianza",
+    "subtitle": "Soluciones visuales que reflejan profesionalismo y respaldo.",
+    "image": "/uploads/carrusel/1786122075941-a13c47beb593.png",
+    "alt": "Mujeres profesionales revisando reportes"
+  },
+  {
+    "title": "Ventas y prendas",
+    "subtitle": "Mujeres en ventas con enfoque en moda y control de inventario.",
+    "image": "http://localhost:3001/uploads/carrusel/1786121403042-c2aed04f55db.png",
+    "alt": "Mujeres trabajando con ropa y ventas"
+  }
+]

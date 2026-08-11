@@ -1,0 +1,435 @@
+﻿Usuarios encontrados: 62
+{
+  id: 1,
+  email: 'admin@renacer.com',
+  nombre: 'Administrador',
+  rol: 'ADMIN',
+  activo: true
+}
+{
+  id: 3,
+  email: 'blanca@renacer.com',
+  nombre: 'Blanca Montilla',
+  rol: 'GERENTE_REGIONAL',
+  activo: true
+}
+{
+  id: 11,
+  email: 'Gaudysarias@renacer.com',
+  nombre: 'Gaudys arias',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
+{
+  id: 18,
+  email: 'Juniorparraga@renacer.com',
+  nombre: 'junior parraga ',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
+{
+  id: 19,
+  email: 'Neydabrito@renacer.com',
+  nombre: 'Neyda brito',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
+{
+  id: 20,
+  email: 'Alexandertorin@renacer.com',
+  nombre: 'Alexander Torin',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
+{
+  id: 22,
+  email: 'Jesusprimeras@renacer.com',
+  nombre: 'Jes├║s Primeras',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
+{
+  id: 23,
+  email: 'Noheliaheredia@renacer.com',
+  nombre: 'Nohelia Heredia',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
+{
+  id: 24,
+  email: 'Hannyperez@renacer.com',
+  nombre: 'Hanny Perez',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
+{
+  id: 25,
+  email: 'Lilianadiaz@renacer.com',
+  nombre: 'Liliana Diaz',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
+{
+  id: 26,
+  email: 'beatrizsarmiento@renacer.com',
+  nombre: 'Beatriz Sarmiento',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
+{
+  id: 27,
+  email: 'Sairisnieto@renacer.com',
+  nombre: 'Sairis Nieto',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
+{
+  id: 28,
+  email: 'Cruzmarymonterrey@renacer.com',
+  nombre: 'Cruzmary Monterrey ',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
+{
+  id: 29,
+  email: 'Auralopez@renacer.com',
+  nombre: 'Aura Lopez',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
+{
+  id: 30,
+  email: 'Carmengonzales@renacer.com',
+  nombre: 'Carmen Gonz├íles',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
+{
+  id: 31,
+  email: 'Dignaquintero@renacer.com',
+  nombre: 'Digna Quintero',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
+{
+  id: 32,
+  email: 'kemberlysbracho@renacer.com',
+  nombre: 'Kemberlys Bracho',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
+{
+  id: 33,
+  email: 'Juanaoviedo@renacer.com',
+  nombre: 'Juana oviedo',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
+{
+  id: 34,
+  email: 'Elizendaperozo@renacer.com',
+  nombre: 'Elizenda Perozo',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
+{
+  id: 35,
+  email: 'Tamarisgonzalez@renacer.com',
+  nombre: 'Tamaris gonzalez',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
+{
+  id: 36,
+  email: 'Cheilajimenez@renacer.com',
+  nombre: 'Cheila jimenez ',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
+{
+  id: 37,
+  email: 'Leidyrodriguez@renacer.com',
+  nombre: 'Leidy rodriguez',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
+{
+  id: 38,
+  email: 'Maryerisquevedo@renacer.com',
+  nombre: 'Maryeris quevedo',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
+{
+  id: 39,
+  email: 'Maresbydorante@renacer.com',
+  nombre: 'Maresby dorante ',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
+{
+  id: 40,
+  email: 'Osneidycordero@renacer.com',
+  nombre: 'Osneidy cordero ',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
+{
+  id: 41,
+  email: 'Danyaguirre@renacer.com',
+  nombre: 'Dany aguirre',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
+{
+  id: 42,
+  email: 'Norelkysbolivar@renacer.com',
+  nombre: 'Norelkys bolivar',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
+{
+  id: 43,
+  email: 'marbelyslamas@renacer.com',
+  nombre: 'Marbelys lamas',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
+{
+  id: 44,
+  email: 'Edemarissolteldo@renacer.com',
+  nombre: 'Edemaris solteldo',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
+{
+  id: 45,
+  email: 'Maryorithsolorzano@renacer.com',
+  nombre: 'Maryurith solorzano',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
+{
+  id: 46,
+  email: 'Franciscavelasquez@renacer.com',
+  nombre: 'francisca velasquez',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
+{
+  id: 47,
+  email: 'Tabeidamieres@renacer.com',
+  nombre: 'Tabeida mieres',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
+{
+  id: 48,
+  email: 'Jazmincarballo@renacer.com',
+  nombre: 'Jazmin carballo',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
+{
+  id: 49,
+  email: 'Anyulybrizuela@renacer.com',
+  nombre: 'Anyuly brizuela',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
+{
+  id: 50,
+  email: 'Katiuskareina@renacer.com',
+  nombre: 'Katiuska reina',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
+{
+  id: 51,
+  email: 'Militzahurtado@renacer.com',
+  nombre: 'Militza hurtado',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
+{
+  id: 52,
+  email: 'Mayramejias@renacer.com',
+  nombre: 'Mayra mejias ',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
+{
+  id: 53,
+  email: 'Nancytorres@renacer.com',
+  nombre: 'Nancy torres',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
+{
+  id: 54,
+  email: 'Soniacarrasco@renacer.com',
+  nombre: 'Sonia carrasco ',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
+{
+  id: 55,
+  email: 'Fatimacolina@renacer.com',
+  nombre: 'Fatima colina',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
+{
+  id: 56,
+  email: 'Yakelinrojas@renacer.com',
+  nombre: 'Yakelin rojas',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
+{
+  id: 57,
+  email: 'Yamilethbracho@renacer.com',
+  nombre: 'Yamileth bracho',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
+{
+  id: 58,
+  email: 'Floirafigueredo@renacer.com',
+  nombre: 'Floira figueredo',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
+{
+  id: 59,
+  email: 'Fabiolamendez@renacer.com',
+  nombre: 'Fabiola mendez',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
+{
+  id: 60,
+  email: 'Marianasuarez@renacer.com',
+  nombre: 'Mariana suarez',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
+{
+  id: 61,
+  email: 'Gloribethlinarez@renacer.com',
+  nombre: 'Gloribeth linarez ',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
+{
+  id: 62,
+  email: 'Petrahernandez@renacer.com',
+  nombre: 'Petra hernandez',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
+{
+  id: 64,
+  email: 'Mariajose@renacer.com',
+  nombre: 'Maria jose rios',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
+{
+  id: 65,
+  email: 'Mireidisgalindez@renacer.com',
+  nombre: 'Mireidis galindez',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
+{
+  id: 66,
+  email: 'Nellyrodriguez@renacer.com',
+  nombre: 'Nelly rodriguez',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
+{
+  id: 67,
+  email: 'Yeniregomez@renacer.com',
+  nombre: 'Yenire gomez',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
+{
+  id: 68,
+  email: 'aideespinola@renacer.com',
+  nombre: 'Aide espinola',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
+{
+  id: 69,
+  email: 'Irisvillegas@renacer.com',
+  nombre: 'Iris villegas ',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
+{
+  id: 70,
+  email: 'Bepcyardiles@renacer.com',
+  nombre: 'Bepcy ardiles ',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
+{
+  id: 71,
+  email: 'Carmenpernalete@renacer.com',
+  nombre: 'Carmen pernalete ',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
+{
+  id: 72,
+  email: 'Bertabelcastillo@renacer.com',
+  nombre: 'Bertabel castillo',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
+{
+  id: 73,
+  email: 'Belkiszambrano@renacer.com',
+  nombre: 'Belkis zambrano',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
+{
+  id: 74,
+  email: 'Zenaidatovar@renacer.com',
+  nombre: 'Zenaida tovar',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
+{
+  id: 76,
+  email: 'emibelyrivas@renacer.com',
+  nombre: 'Emibely Rivas ',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
+{
+  id: 81,
+  email: 'piedadordones@renacer.com',
+  nombre: 'Piedad ordones',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
+{
+  id: 82,
+  email: 'nodeb.user@example.com',
+  nombre: 'Prueba Node B',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
+{
+  id: 83,
+  email: 'pruebas@renacer.com',
+  nombre: 'usuario pruebas',
+  rol: 'GERENTE_ZONA',
+  activo: true
+}
