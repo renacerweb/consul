@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import LayoutAdmin from '../../components/LayoutAdmin';
 import { Link } from 'react-router-dom';
+import api from '../../services/api';
 
 type Slide = {
   title: string;
@@ -20,14 +21,11 @@ function AdminCarrusel() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // cargar slides desde backend
     const fetchSlides = async () => {
       try {
-        const res = await fetch('/api/carrusel');
-        if (res.ok) {
-          const data = await res.json();
-          setSlides(data);
-        }
+        const response = await api.get('/carrusel');
+        const data = response.data;
+        setSlides(Array.isArray(data) ? data : defaultSlides);
       } catch (e) {
         console.error('No se pudo cargar carrusel:', e);
       }
@@ -43,40 +41,17 @@ function AdminCarrusel() {
   const removeSlide = (idx: number) => setSlides((s) => s.filter((_, i) => i !== idx));
 
   const uploadImageToBackend = async (file: File) => {
-    const token = sessionStorage.getItem('token');
     const form = new FormData();
     form.append('image', file);
 
-    const uploadRes = await fetch('/api/carrusel/upload', {
-      method: 'POST',
-      headers: {
-        Authorization: token ? `Bearer ${token}` : '',
-      },
-      body: form,
-    });
-
-    if (!uploadRes.ok) {
-      const error = await uploadRes.json().catch(() => null);
-      throw new Error(error?.error || 'Error al subir imagen');
-    }
-
-    const data = await uploadRes.json();
-    return data.url as string;
+    const uploadRes = await api.post('/carrusel/upload', form);
+    return uploadRes.data.url as string;
   };
 
   const save = async () => {
     setLoading(true);
     try {
-      const token = sessionStorage.getItem('token');
-      const res = await fetch('/api/carrusel', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: token ? `Bearer ${token}` : '',
-        },
-        body: JSON.stringify(slides),
-      });
-      if (!res.ok) throw new Error('Error al guardar en backend');
+      await api.put('/carrusel', slides);
       window.dispatchEvent(new Event('carouselUpdated'));
       alert('Diapositivas guardadas');
     } catch (e) {

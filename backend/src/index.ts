@@ -49,7 +49,23 @@ const PORT: number = parseInt(process.env.PORT || '3001', 10)
 // ==================== MIDDLEWARES DE SEGURIDAD ====================
 
 // Helmet - Protección de headers HTTP
-app.use(helmet())
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      baseUri: ["'self'"],
+      fontSrc: ["'self'", 'https:', 'data:'],
+      frameAncestors: ["'self'"],
+      imgSrc: ["'self'", 'data:', 'https:'],
+      objectSrc: ["'none'"],
+      scriptSrc: ["'self'"],
+      scriptSrcAttr: ["'none'"],
+      styleSrc: ["'self'", 'https:', "'unsafe-inline'"],
+      upgradeInsecureRequests: [],
+    },
+  },
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+}))
 
 // CORS - Configuración específica según entorno
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173'

@@ -36,12 +36,24 @@ function Home() {
 
   const [carouselSlides, setCarouselSlides] = useState(defaultCarouselSlides);
 
+  const getApiBaseUrl = () => {
+    const rawApiUrl = (import.meta as any).env?.VITE_API_URL;
+    if (typeof rawApiUrl === 'string' && rawApiUrl.trim()) {
+      return rawApiUrl.replace(/\/api\/?$/, '').replace(/\/+$/, '');
+    }
+    return '';
+  };
+
   const normalizeImageUrl = (url: string) => {
     if (!url) return url;
+    const apiBaseUrl = getApiBaseUrl();
     try {
       const parsed = new URL(url, window.location.origin);
       if (parsed.pathname.startsWith('/uploads/')) {
-        return `${parsed.pathname}${parsed.search}`;
+        return apiBaseUrl ? `${apiBaseUrl}${parsed.pathname}${parsed.search}` : `${parsed.pathname}${parsed.search}`;
+      }
+      if (['localhost', '127.0.0.1', '::1'].includes(parsed.hostname)) {
+        return apiBaseUrl ? `${apiBaseUrl}${parsed.pathname}${parsed.search}` : `${parsed.pathname}${parsed.search}`;
       }
       return url;
     } catch {
@@ -113,28 +125,11 @@ function Home() {
     }
   }, []);
 
-  // Listen for updates from admin when carousel changes
-  useEffect(() => {
-    const handler = () => {
-      try {
-        fetch('/api/carrusel')
-          .then((r) => r.ok ? r.json() : null)
-          .then((data) => { if (data) setCarouselSlides(data); })
-          .catch(() => {});
-      } catch (e) {
-        // ignore
-      }
-    };
-    window.addEventListener('carouselUpdated', handler);
-    return () => window.removeEventListener('carouselUpdated', handler);
-  }, []);
-
-  // Inicialmente cargar desde backend
-  useEffect(() => {
-    fetch('/api/carrusel')
-      .then((r) => r.ok ? r.json() : null)
-      .then((data) => {
-        if (data) {
+  const loadCarousel = () => {
+    api.get('/carrusel')
+      .then((response) => {
+        const data = response.data;
+        if (Array.isArray(data)) {
           setCarouselSlides(data.map((slide: any) => ({
             ...slide,
             image: normalizeImageUrl(slide.image),
@@ -142,6 +137,20 @@ function Home() {
         }
       })
       .catch(() => {});
+  };
+
+  // Listen for updates from admin when carousel changes
+  useEffect(() => {
+    const handler = () => {
+      loadCarousel();
+    };
+    window.addEventListener('carouselUpdated', handler);
+    return () => window.removeEventListener('carouselUpdated', handler);
+  }, []);
+
+  // Inicialmente cargar desde backend
+  useEffect(() => {
+    loadCarousel();
   }, []);
 
   const getStatusConfig = (reputacion: string) => {
