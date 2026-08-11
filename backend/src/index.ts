@@ -67,14 +67,16 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
 }))
 
-// CORS - Configuración específica según entorno
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173'
-const allowedOrigins = process.env.NODE_ENV === 'production'
-  ? [FRONTEND_URL]
+// CORS - Configuración de orígenes permitidos
+// `FRONTEND_URL` acepta una lista separada por comas, p.ej:
+// FRONTEND_URL=https://consultasrenacer.com,https://www.consultasrenacer.com
+const rawFrontend = process.env.FRONTEND_URL
+const frontendOrigins = rawFrontend
+  ? rawFrontend.split(',').map(s => s.trim()).filter(Boolean)
   : [/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/]
 
 app.use(cors({
-  origin: allowedOrigins,
+  origin: frontendOrigins,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
