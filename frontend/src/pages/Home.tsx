@@ -363,6 +363,7 @@ function Home() {
             </div>
           )}
         </div>
+      </div>
       </section>
       
       {/* Instrucciones de calificación (solo visible para GERENTE_ZONA) */}
